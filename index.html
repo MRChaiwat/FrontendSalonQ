@@ -1,114 +1,138 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIFF Test</title>
-    <!-- Tailwind CSS for basic styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap');
-        body {
-            font-family: 'Prompt', sans-serif;
-            background-color: #f0f2f5;
-        }
-        .container {
-            max-width: 500px;
-            margin: 2rem auto;
-            padding: 2rem;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIFF Data Sender</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
 </head>
-<body>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="container bg-white rounded-xl shadow-lg p-8 space-y-6">
-        <h1 class="text-3xl font-bold text-center text-gray-800">ทดสอบการเชื่อมต่อ LIFF</h1>
-        <p class="text-center text-gray-600">สถานะการเชื่อมต่อจะแสดงด้านล่าง</p>
-
-        <!-- Display Area -->
-        <div id="statusSection" class="p-4 rounded-lg text-center">
-            <p id="statusMessage" class="font-medium text-gray-700">กำลังโหลด LIFF SDK...</p>
-        </div>
-        
-        <div id="userInfo" class="hidden p-6 bg-gray-100 rounded-lg space-y-3">
-            <h2 class="text-xl font-semibold text-gray-800">ข้อมูลผู้ใช้</h2>
-            <p><strong>ชื่อ:</strong> <span id="displayName" class="text-blue-600"></span></p>
-            <p><strong>User ID:</strong> <span id="userId" class="text-green-600 break-all"></span></p>
-        </div>
+  <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">ส่งข้อมูลไปยัง Backend</h1>
+    
+    <div id="status" class="mb-4 text-center">
+      <p class="text-gray-600">กำลังเชื่อมต่อกับ LIFF...</p>
     </div>
 
-    <!-- LIFF SDK -->
-    <script src="https://static.line-scdn.net/liff/2.22.3/liff.js"></script>
-    <script>
-        // *** Important! ***
-        // Change this LIFF ID to the one you want to test.
-        const liffId = '2007895406-VWgOqgvW'; 
+    <div id="form-container" class="hidden">
+      <div class="mb-4">
+        <label for="username" class="block text-gray-700 font-semibold mb-2">ชื่อผู้ใช้</label>
+        <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้ของคุณ" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+      </div>
+      <div class="mb-6">
+        <label for="message" class="block text-gray-700 font-semibold mb-2">ข้อความ</label>
+        <textarea id="message" rows="4" placeholder="กรอกข้อความที่ต้องการส่ง" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+      </div>
+      <button id="submit-button" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-bold hover:bg-green-700 transition-colors duration-200 shadow-md">
+        ส่งข้อมูล
+      </button>
+    </div>
 
-        const statusSection = document.getElementById('statusSection');
-        const statusMessage = document.getElementById('statusMessage');
-        const userInfoDiv = document.getElementById('userInfo');
-        const displayNameSpan = document.getElementById('displayName');
-        const userIdSpan = document.getElementById('userId');
+    <div id="result-container" class="hidden mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+      <p class="font-semibold text-green-700">ส่งข้อมูลสำเร็จ!</p>
+      <pre id="result-display" class="mt-2 text-sm text-green-800 bg-green-100 p-2 rounded-md overflow-x-auto"></pre>
+    </div>
 
-        // Main function to initialize LIFF
-        async function initializeLiff() {
-            try {
-                // Check if LIFF SDK is loaded
-                if (typeof liff === 'undefined') {
-                    console.error('LIFF SDK is not loaded. Retrying in 1 second.');
-                    statusMessage.textContent = '❌ LIFF SDK ไม่สามารถโหลดได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
-                    statusSection.classList.remove('bg-gray-100');
-                    statusSection.classList.add('bg-red-100');
-                    // Retry initialization after a short delay
-                    setTimeout(initializeLiff, 1000);
-                    return;
-                }
+  </div>
 
-                // Show status message
-                statusMessage.textContent = 'กำลังเชื่อมต่อกับ LIFF...';
-                statusSection.classList.remove('bg-green-100', 'bg-red-100');
-                statusSection.classList.add('bg-gray-100');
-                
-                // Initialize LIFF SDK
-                await liff.init({ liffId: liffId });
+  <script>
+    // URL ของ API ที่คุณต้องการส่งข้อมูลไป
+    const BACKEND_API_URL = 'https://salon-rbms.onrender.com'; 
 
-                // Check if user is logged in
-                if (liff.isLoggedIn()) {
-                    // If logged in, get user profile
-                    const profile = await liff.getProfile();
-                    
-                    // Display user information
-                    displayNameSpan.textContent = profile.displayName;
-                    userIdSpan.textContent = profile.userId;
+    document.addEventListener('DOMContentLoaded', function () {
+      const statusText = document.getElementById('status');
+      const formContainer = document.getElementById('form-container');
+      const submitButton = document.getElementById('submit-button');
+      const usernameInput = document.getElementById('username');
+      const messageTextarea = document.getElementById('message');
+      const resultContainer = document.getElementById('result-container');
+      const resultDisplay = document.getElementById('result-display');
 
-                    // Show user info section
-                    userInfoDiv.classList.remove('hidden');
+      let liffId = '2007895406-VWgOqgvW'; // <---- อย่าลืมเปลี่ยนตรงนี้เป็น LIFF ID ของคุณ!
 
-                    // Display success message
-                    statusMessage.textContent = '✅ เชื่อมต่อสำเร็จและดึงข้อมูลผู้ใช้ได้แล้ว!';
-                    statusSection.classList.remove('bg-gray-100');
-                    statusSection.classList.add('bg-green-100');
-                    console.log('LIFF initialization successful. User Profile:', profile);
-                } else {
-                    // If not logged in, redirect to the login page
-                    statusMessage.textContent = 'กรุณาเข้าสู่ระบบ LINE เพื่อดำเนินการต่อ...';
-                    statusSection.classList.remove('bg-gray-100');
-                    statusSection.classList.add('bg-yellow-100');
-                    liff.login();
-                }
-            } catch (error) {
-                // Handle LIFF initialization errors
-                statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + error.message;
-                statusSection.classList.remove('bg-gray-100');
-                statusSection.classList.add('bg-red-100');
-                console.error('LIFF initialization failed:', error);
-            }
+      // ตรวจสอบ LIFF ID ก่อนเริ่ม
+      if (!liffId || liffId.trim() === '') {
+        statusText.textContent = 'กรุณาใส่ LIFF ID ของคุณในโค้ด';
+        statusText.classList.add('text-red-500');
+        return;
+      }
+
+      // ฟังก์ชันสำหรับส่งข้อมูล
+      const sendData = async () => {
+        const username = usernameInput.value;
+        const message = messageTextarea.value;
+
+        if (!username || !message) {
+          alert('กรุณากรอกชื่อผู้ใช้และข้อความให้ครบถ้วน');
+          return;
         }
-        
-        // Start the process when the page loads
-        window.onload = function() {
-            initializeLiff();
-        };
-    </script>
+
+        submitButton.textContent = 'กำลังส่ง...';
+        submitButton.disabled = true;
+
+        try {
+          // รับ Access Token จาก LIFF
+          const accessToken = liff.getAccessToken();
+
+          const payload = {
+            username: username,
+            message: message
+          };
+
+          const response = await fetch(BACKEND_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'การส่งข้อมูลล้มเหลว');
+          }
+
+          console.log('Success:', result);
+          resultDisplay.textContent = JSON.stringify(result, null, 2);
+          resultContainer.classList.remove('hidden');
+
+        } catch (error) {
+          console.error('Error:', error);
+          statusText.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+          statusText.classList.add('text-red-500');
+        } finally {
+          submitButton.textContent = 'ส่งข้อมูล';
+          submitButton.disabled = false;
+        }
+      };
+
+      // เริ่มต้น LIFF App
+      liff.init({ liffId: liffId })
+        .then(() => {
+          statusText.textContent = 'เชื่อมต่อกับ LIFF สำเร็จ';
+          if (!liff.isLoggedIn()) {
+            // หากยังไม่ได้ล็อกอิน ให้ทำการล็อกอิน
+            liff.login();
+          } else {
+            statusText.textContent = 'ล็อกอินสำเร็จ';
+            formContainer.classList.remove('hidden');
+            submitButton.addEventListener('click', sendData);
+          }
+        })
+        .catch((err) => {
+          statusText.textContent = `เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ${err}`;
+          statusText.classList.add('text-red-500');
+        });
+    });
+  </script>
 </body>
 </html>
