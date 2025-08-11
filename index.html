@@ -25,18 +25,6 @@
         .btn-primary {
             @apply w-full py-4 px-4 bg-green-500 text-white font-bold rounded-lg shadow-lg hover:bg-green-600 transition duration-300 ease-in-out;
         }
-        .time-slot {
-            @apply px-4 py-2 border rounded-lg text-center cursor-pointer transition-colors duration-200;
-        }
-        .time-slot.available {
-            @apply bg-white border-green-400 text-green-700 hover:bg-green-50;
-        }
-        .time-slot.booked {
-            @apply bg-gray-200 border-gray-300 text-gray-500 cursor-not-allowed;
-        }
-        .time-slot.selected {
-            @apply bg-green-500 text-white shadow-lg;
-        }
     </style>
 </head>
 <body>
@@ -47,19 +35,16 @@
         
         <form id="bookingForm" class="space-y-6">
             
-            <!-- Date -->
-            <div>
-                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
-                <input type="date" id="date" class="form-input" required>
-            </div>
-            
-            <!-- Time Slots -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">เวลา</label>
-                <div id="timeSlots" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    <!-- Time slots will be generated here by JavaScript -->
+            <!-- Date and Time -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="w-full sm:w-1/2">
+                    <label for="date" class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
+                    <input type="date" id="date" class="form-input" required>
                 </div>
-                <div id="timeStatusMessage" class="text-center mt-2 text-sm font-medium text-red-500 hidden"></div>
+                <div class="w-full sm:w-1/2">
+                    <label for="time" class="block text-sm font-medium text-gray-700 mb-1">เวลา</label>
+                    <input type="time" id="time" class="form-input" required>
+                </div>
             </div>
 
             <!-- Main Service and Sub Service -->
@@ -116,8 +101,7 @@
         // --- 1. CONFIGURATION ---
         // *** IMPORTANT ***
         // แทนที่ URL ด้านล่างด้วย URL จริงของ Backend Server ที่คุณ Deploy บน Render
-        const backendUrl = 'https://salon-rbms.onrender.com//api/booking';
-        const availabilityUrl = 'https://salon-rbms.onrender.com//api/availability';
+        const backendUrl = 'https://salon-rbms.onrender.com/api/booking';
         
         // ข้อมูลบริการและช่าง (สามารถดึงมาจาก Backend แทนได้ในอนาคต)
         const services = {
@@ -127,18 +111,10 @@
             'ทำสี': ['ทำสีแฟชั่น', 'ทำสีปิดผมขาว']
         };
         const technicians = ['ช่างทดสอบ', 'ช่างเอ', 'ช่างบี'];
-        
-        // ช่วงเวลาทำการของร้าน
-        const openHours = {
-            start: 9, // 9:00
-            end: 18,  // 18:00
-            interval: 30 // 30 นาที
-        };
 
         // --- 2. DOM ELEMENTS ---
         const dateInput = document.getElementById('date');
-        const timeSlotsContainer = document.getElementById('timeSlots');
-        const timeStatusMessage = document.getElementById('timeStatusMessage');
+        const timeInput = document.getElementById('time');
         const mainServiceSelect = document.getElementById('mainService');
         const subServiceSelect = document.getElementById('subService');
         const technicianSelect = document.getElementById('technician');
@@ -149,7 +125,6 @@
         const statusMessage = document.getElementById('statusMessage');
 
         let userProfile = null;
-        let selectedTime = null;
 
         // --- 3. UI SETUP FUNCTIONS ---
 
@@ -194,66 +169,15 @@
             const day = String(today.getDate()).padStart(2, '0');
             dateInput.min = `${year}-${month}-${day}`;
         }
-
-        // Function เพื่อสร้างช่องเวลา
-        function generateTimeSlots(bookedSlots = []) {
-            timeSlotsContainer.innerHTML = ''; // เคลียร์ช่องเวลาเดิม
-            selectedTime = null; // รีเซ็ตเวลาที่เลือก
-            let hasAvailableSlots = false;
-            
-            const now = new Date();
-            const selectedDate = new Date(dateInput.value);
-            const isToday = selectedDate.toDateString() === now.toDateString();
-
-            for (let hour = openHours.start; hour <= openHours.end; hour++) {
-                for (let minute = 0; minute < 60; minute += openHours.interval) {
-                    // ไม่สร้างช่องเวลาถ้าเกินเวลาปิด
-                    if (hour === openHours.end && minute > 0) continue;
-
-                    const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                    const slotElement = document.createElement('div');
-                    slotElement.textContent = time;
-                    slotElement.classList.add('time-slot');
-
-                    const isTimePast = isToday && (new Date(selectedDate.setHours(hour, minute)) < now);
-                    const isBooked = bookedSlots.includes(time);
-
-                    if (isBooked || isTimePast) {
-                        slotElement.classList.add('booked');
-                        slotElement.disabled = true;
-                    } else {
-                        slotElement.classList.add('available');
-                        slotElement.addEventListener('click', () => {
-                            // ลบคลาส 'selected' จากช่องเวลาอื่น
-                            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
-                            // เพิ่มคลาส 'selected' ในช่องเวลาที่ถูกเลือก
-                            slotElement.classList.add('selected');
-                            selectedTime = time;
-                            // อัปเดตสถานะปุ่มจอง
-                            checkFormValidity();
-                        });
-                        hasAvailableSlots = true;
-                    }
-
-                    timeSlotsContainer.appendChild(slotElement);
-                }
-            }
-            timeStatusMessage.textContent = hasAvailableSlots ? '' : 'ขออภัย วันนี้คิวเต็มแล้ว';
-            timeStatusMessage.classList.toggle('hidden', hasAvailableSlots);
-        }
-
-        // Function เพื่อตรวจสอบความพร้อมของฟอร์ม
-        function checkFormValidity() {
-            const isValid = bookingForm.checkValidity() && selectedTime;
-            submitBtn.disabled = !isValid;
-        }
-
-        // --- 4. LIFF INITIALIZATION & AVAILABILITY CHECK ---
+        
+        // --- 4. LIFF INITIALIZATION ---
         async function initializeLiff() {
             try {
+                // Initialize LIFF
                 await liff.init({ liffId: '2007895406-VWgOqgvW' }); // *** อย่าลืมแทนที่ด้วย LIFF ID ของคุณ ***
                 
                 if (liff.isLoggedIn()) {
+                    // Get user profile if logged in
                     userProfile = await liff.getProfile();
                     customerNameInput.value = userProfile.displayName;
                     lineUserIdInput.value = userProfile.userId;
@@ -261,6 +185,7 @@
                     submitBtn.textContent = 'ยืนยันการจอง';
                     submitBtn.disabled = false;
                 } else {
+                    // If not logged in, redirect to login page
                     liff.login();
                 }
             } catch (error) {
@@ -269,72 +194,30 @@
             }
         }
         
-        async function fetchBookedSlots(date) {
-            if (!date) {
-                generateTimeSlots();
-                return;
-            }
-            
-            statusMessage.textContent = 'กำลังตรวจสอบคิวว่าง...';
-            statusMessage.classList.remove('hidden');
-            
-            try {
-                // Fetch booked slots for the selected date
-                const response = await fetch(`${availabilityUrl}?date=${date}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const bookedSlots = await response.json();
-                
-                generateTimeSlots(bookedSlots);
-                
-                statusMessage.textContent = ''; // Clear status message
-                statusMessage.classList.add('hidden');
-            } catch (error) {
-                console.error('Error fetching booked slots:', error);
-                statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการตรวจสอบคิวว่าง';
-                statusMessage.classList.remove('hidden');
-                generateTimeSlots(); // Show empty or default slots
-            }
-        }
-
         // --- 5. EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
             setMinDate();
             populateServiceOptions();
             populateTechnicianOptions();
             initializeLiff();
-            
-            // Generate initial time slots on load
-            generateTimeSlots();
-        });
-
-        dateInput.addEventListener('change', (event) => {
-            fetchBookedSlots(event.target.value);
-            checkFormValidity();
         });
 
         mainServiceSelect.addEventListener('change', (event) => {
             populateSubServiceOptions(event.target.value);
-            checkFormValidity();
-        });
-        
-        technicianSelect.addEventListener('change', () => {
-            checkFormValidity();
         });
 
         bookingForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); 
+            event.preventDefault(); // ป้องกันการ reload หน้าเว็บ
             
             submitBtn.textContent = 'กำลังส่งข้อมูล...';
             submitBtn.disabled = true;
             statusMessage.textContent = 'โปรดรอสักครู่...';
-            statusMessage.classList.remove('hidden', 'text-green-600', 'text-red-600');
             
+            // Collect form data
             const bookingData = {
                 timestamp: new Date().toISOString(),
                 date: dateInput.value,
-                time: selectedTime,
+                time: timeInput.value,
                 mainService: mainServiceSelect.value,
                 subService: subServiceSelect.value,
                 technician: technicianSelect.value,
@@ -361,6 +244,7 @@
                 if (response.ok && result.success) {
                     statusMessage.textContent = '✅ จองคิวสำเร็จแล้ว! ระบบจะแจ้งเตือนใน LINE ครับ';
                     statusMessage.classList.add('text-green-600');
+                    // ปิดหน้า LIFF หลังจากจองสำเร็จ
                     liff.closeWindow();
                 } else {
                     statusMessage.textContent = `❌ เกิดข้อผิดพลาด: ${result.message}`;
