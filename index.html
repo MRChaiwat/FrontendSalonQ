@@ -40,8 +40,8 @@
     <!-- LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/2.22.3/liff.js"></script>
     <script>
-        // *** สำคัญมาก! ***
-        // เปลี่ยน LIFF ID นี้เป็นของที่คุณต้องการทดสอบ
+        // *** Important! ***
+        // Change this LIFF ID to the one you want to test.
         const liffId = '2007895406-VWgOqgvW'; 
 
         const statusSection = document.getElementById('statusSection');
@@ -50,43 +50,54 @@
         const displayNameSpan = document.getElementById('displayName');
         const userIdSpan = document.getElementById('userId');
 
-        // ฟังก์ชันหลักสำหรับเริ่มต้น LIFF
+        // Main function to initialize LIFF
         async function initializeLiff() {
             try {
-                // แสดงสถานะว่ากำลังเชื่อมต่อ
+                // Check if LIFF SDK is loaded
+                if (typeof liff === 'undefined') {
+                    console.error('LIFF SDK is not loaded. Retrying in 1 second.');
+                    statusMessage.textContent = '❌ LIFF SDK ไม่สามารถโหลดได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+                    statusSection.classList.remove('bg-gray-100');
+                    statusSection.classList.add('bg-red-100');
+                    // Retry initialization after a short delay
+                    setTimeout(initializeLiff, 1000);
+                    return;
+                }
+
+                // Show status message
                 statusMessage.textContent = 'กำลังเชื่อมต่อกับ LIFF...';
                 statusSection.classList.remove('bg-green-100', 'bg-red-100');
                 statusSection.classList.add('bg-gray-100');
                 
-                // เริ่มต้น LIFF SDK
+                // Initialize LIFF SDK
                 await liff.init({ liffId: liffId });
 
-                // ตรวจสอบว่าผู้ใช้เข้าสู่ระบบหรือไม่
+                // Check if user is logged in
                 if (liff.isLoggedIn()) {
-                    // หากเข้าสู่ระบบแล้ว ให้ดึงข้อมูลโปรไฟล์
+                    // If logged in, get user profile
                     const profile = await liff.getProfile();
                     
-                    // แสดงผลข้อมูลผู้ใช้
+                    // Display user information
                     displayNameSpan.textContent = profile.displayName;
                     userIdSpan.textContent = profile.userId;
 
-                    // แสดงส่วนข้อมูลผู้ใช้
+                    // Show user info section
                     userInfoDiv.classList.remove('hidden');
 
-                    // แสดงข้อความสำเร็จ
+                    // Display success message
                     statusMessage.textContent = '✅ เชื่อมต่อสำเร็จและดึงข้อมูลผู้ใช้ได้แล้ว!';
                     statusSection.classList.remove('bg-gray-100');
                     statusSection.classList.add('bg-green-100');
                     console.log('LIFF initialization successful. User Profile:', profile);
                 } else {
-                    // หากยังไม่ได้เข้าสู่ระบบ ให้พาไปหน้า Login
+                    // If not logged in, redirect to the login page
                     statusMessage.textContent = 'กรุณาเข้าสู่ระบบ LINE เพื่อดำเนินการต่อ...';
                     statusSection.classList.remove('bg-gray-100');
                     statusSection.classList.add('bg-yellow-100');
                     liff.login();
                 }
             } catch (error) {
-                // หากเกิดข้อผิดพลาดในการเชื่อมต่อ
+                // Handle LIFF initialization errors
                 statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + error.message;
                 statusSection.classList.remove('bg-gray-100');
                 statusSection.classList.add('bg-red-100');
@@ -94,7 +105,7 @@
             }
         }
         
-        // เริ่มต้นการทำงานเมื่อหน้าเว็บโหลดเสร็จ
+        // Start the process when the page loads
         window.onload = function() {
             initializeLiff();
         };
