@@ -4,680 +4,378 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจองคิวออนไลน์</title>
-    <!-- Use Tailwind CSS for modern and responsive styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <!-- LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/2.22.3/liff.js"></script>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Prompt:wght@300;400;500;700&display=swap');
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Prompt', sans-serif;
+            background-color: #f0f2f5;
         }
         .container {
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 1rem;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            padding: 1.5rem;
         }
-        .step-content {
-            flex-grow: 1;
-            display: none;
-        }
-        .step-content.active {
-            display: flex;
-            flex-direction: column;
+        .form-input, .form-select {
+            @apply block w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-200;
         }
         .btn-primary {
-            @apply bg-green-500 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-all duration-300 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75;
+            @apply w-full py-4 px-4 bg-green-500 text-white font-bold rounded-lg shadow-lg hover:bg-green-600 transition duration-300 ease-in-out;
         }
-        .btn-secondary {
-            @apply bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-full shadow-md transition-all duration-300 hover:bg-gray-300 focus:outline-none;
+        .time-slot {
+            @apply px-4 py-2 border rounded-lg text-center cursor-pointer transition-colors duration-200;
         }
-        .card {
-            @apply bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-4;
+        .time-slot.available {
+            @apply bg-white border-green-400 text-green-700 hover:bg-green-50;
         }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+        .time-slot.booked {
+            @apply bg-gray-200 border-gray-300 text-gray-500 cursor-not-allowed;
         }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        .modal-content {
-            @apply bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center;
+        .time-slot.selected {
+            @apply bg-green-500 text-white shadow-lg;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Main App Screen -->
-        <div id="step-start" class="step-content active justify-center items-center text-center">
-            <div class="p-8">
-                <h1 class="text-3xl font-bold mb-4 text-gray-800">ยินดีต้อนรับสู่ระบบจองคิว</h1>
-                <p class="text-gray-600 mb-8">กดปุ่มด้านล่างเพื่อเริ่มจองคิว</p>
-                <button class="btn-primary" onclick="showStep('step-date')">
-                    จองคิว
-                </button>
+    <div class="container bg-white rounded-xl shadow-2xl mt-8">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">จองคิวออนไลน์</h1>
+        <p class="text-center text-gray-600 mb-8">กรุณากรอกรายละเอียดเพื่อทำการจองคิว</p>
+        
+        <form id="bookingForm" class="space-y-6">
+            
+            <!-- Date -->
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
+                <input type="date" id="date" class="form-input" required>
             </div>
-        </div>
-
-        <!-- Step 1: Select Date and Time -->
-        <div id="step-date" class="step-content">
-            <h2 class="text-2xl font-bold mb-4 text-center">เลือกวันและเวลา</h2>
-            <div class="card flex-grow overflow-y-auto">
-                <!-- Calendar will be generated here by JS -->
-                <div id="calendar-container" class="mb-4"></div>
-                <div id="time-slots" class="grid grid-cols-3 gap-2">
-                    <!-- Time slots will be generated here by JS -->
+            
+            <!-- Time Slots -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">เวลา</label>
+                <div id="timeSlots" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    <!-- Time slots will be generated here by JavaScript -->
                 </div>
+                <div id="timeStatusMessage" class="text-center mt-2 text-sm font-medium text-red-500 hidden"></div>
             </div>
-            <button class="btn-primary mt-4" onclick="showStep('step-service')">
-                ต่อไป
-            </button>
-            <button class="btn-secondary mt-2" onclick="showStep('step-start')">
-                ย้อนกลับ
-            </button>
-        </div>
 
-        <!-- Step 2: Select Main Service -->
-        <div id="step-service" class="step-content">
-            <h2 class="text-2xl font-bold mb-4 text-center">เลือกบริการหลัก</h2>
-            <div class="card flex-grow overflow-y-auto">
-                <div id="main-services" class="space-y-4">
-                    <!-- Main services will be generated here by JS -->
-                </div>
+            <!-- Main Service and Sub Service -->
+            <div>
+                <label for="mainService" class="block text-sm font-medium text-gray-700 mb-1">บริการหลัก</label>
+                <select id="mainService" class="form-select" required>
+                    <option value="" disabled selected>เลือกบริการหลัก</option>
+                </select>
             </div>
-            <button class="btn-primary mt-4" onclick="showStep('step-sub-service')" disabled id="service-next-btn">
-                ต่อไป
-            </button>
-            <button class="btn-secondary mt-2" onclick="showStep('step-date')">
-                ย้อนกลับ
-            </button>
-        </div>
-
-        <!-- Step 3: Select Sub-Service -->
-        <div id="step-sub-service" class="step-content">
-            <h2 class="text-2xl font-bold mb-4 text-center">เลือกบริการย่อย</h2>
-            <div class="card flex-grow overflow-y-auto">
-                <div id="sub-services" class="space-y-4">
-                    <!-- Sub-services will be generated here by JS -->
-                </div>
+            <div>
+                <label for="subService" class="block text-sm font-medium text-gray-700 mb-1">บริการย่อย</label>
+                <select id="subService" class="form-select" required>
+                    <option value="" disabled selected>เลือกบริการย่อย</option>
+                </select>
             </div>
-            <button class="btn-primary mt-4" onclick="showStep('step-technician')" disabled id="sub-service-next-btn">
-                ต่อไป
-            </button>
-            <button class="btn-secondary mt-2" onclick="showStep('step-service')">
-                ย้อนกลับ
-            </button>
-        </div>
 
-        <!-- Step 4: Select Technician -->
-        <div id="step-technician" class="step-content">
-            <h2 class="text-2xl font-bold mb-4 text-center">เลือกช่าง</h2>
-            <div class="card flex-grow overflow-y-auto">
-                <div id="technicians" class="space-y-4">
-                    <!-- Technicians will be generated here by JS -->
-                </div>
+            <!-- Technician -->
+            <div>
+                <label for="technician" class="block text-sm font-medium text-gray-700 mb-1">เลือกช่าง</label>
+                <select id="technician" class="form-select" required>
+                    <option value="" disabled selected>เลือกช่าง</option>
+                </select>
             </div>
-            <button class="btn-primary mt-4" onclick="showStep('step-summary')" disabled id="technician-next-btn">
-                ต่อไป
-            </button>
-            <button class="btn-secondary mt-2" onclick="showStep('step-sub-service')">
-                ย้อนกลับ
-            </button>
-        </div>
 
-        <!-- Step 5: Summary and Contact Info -->
-        <div id="step-summary" class="step-content">
-            <h2 class="text-2xl font-bold mb-4 text-center">สรุปและยืนยัน</h2>
-            <div class="card flex-grow overflow-y-auto">
-                <!-- Customer profile (simulated) -->
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-gray-700">ข้อมูลลูกค้า</h3>
-                    <p class="text-gray-600">ชื่อ: <span id="customer-name"></span></p>
-                    <p class="text-gray-600">LINE User ID: <span id="customer-id"></span></p>
-                </div>
-                
-                <!-- Booking details summary -->
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-gray-700">รายละเอียดการจอง</h3>
-                    <p class="text-gray-600">วันและเวลา: <span id="summary-datetime"></span></p>
-                    <p class="text-gray-600">บริการ: <span id="summary-service"></span></p>
-                    <p class="text-gray-600">ช่าง: <span id="summary-technician"></span></p>
-                </div>
+            <!-- Price (hidden input for now) -->
+            <input type="hidden" id="price" value="0">
 
-                <!-- Price calculation -->
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-gray-700">ราคารวม</h3>
-                    <p class="text-2xl font-bold text-green-600">฿<span id="summary-price">0</span></p>
-                </div>
-
-                <!-- Contact form -->
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-2">ข้อมูลติดต่อ</h3>
-                    <div class="mb-4">
-                        <label for="phone" class="block text-gray-600 mb-1">เบอร์โทรศัพท์</label>
-                        <input type="tel" id="phone" class="w-full p-2 border border-gray-300 rounded-md" placeholder="เบอร์โทรศัพท์">
-                    </div>
-                    <div class="mb-4">
-                        <label for="notes" class="block text-gray-600 mb-1">หมายเหตุ</label>
-                        <textarea id="notes" class="w-full p-2 border border-gray-300 rounded-md h-24" placeholder="ระบุข้อความถึงช่าง"></textarea>
-                    </div>
-                </div>
+            <!-- Customer Info -->
+            <div>
+                <label for="customerName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อลูกค้า</label>
+                <input type="text" id="customerName" class="form-input" readonly>
             </div>
-            <button class="btn-primary mt-4" onclick="confirmBooking()">
-                ยืนยันการจอง
-            </button>
-            <button class="btn-secondary mt-2" onclick="showStep('step-technician')">
-                ย้อนกลับ
-            </button>
-        </div>
-
-        <!-- Step 6: Confirmation Screen -->
-        <div id="step-confirmation" class="step-content justify-center items-center text-center">
-            <div class="p-8">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-green-500 mx-auto mb-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <h2 class="text-3xl font-bold mb-4 text-gray-800">ยืนยันการจองสำเร็จ!</h2>
-                <p class="text-gray-600">ระบบได้ส่งการแจ้งเตือนไปยังช่างและคุณเรียบร้อยแล้ว</p>
-                <p class="text-sm text-gray-500 mt-2">ขอบคุณที่ใช้บริการ</p>
+            <div>
+                <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
+                <input type="tel" id="phoneNumber" class="form-input" placeholder="0812345678" required>
             </div>
-        </div>
-    </div>
+            <div>
+                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                <textarea id="notes" class="form-input h-24" placeholder="ข้อความถึงช่าง..."></textarea>
+            </div>
+            
+            <input type="hidden" id="lineUserId">
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-        <svg class="animate-spin h-10 w-10 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-    </div>
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn" class="btn-primary" disabled>
+                กำลังโหลด...
+            </button>
+        </form>
 
-    <!-- Custom Modal for Messages -->
-    <div id="custom-modal" class="modal">
-      <div class="modal-content">
-        <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
-        <p id="modal-message" class="text-gray-700 mb-6"></p>
-        <button class="btn-primary" onclick="hideModal()">ตกลง</button>
-      </div>
+        <div id="statusMessage" class="text-center mt-4 text-sm font-medium"></div>
     </div>
 
     <script>
-        // --- Data Mockup ---
-        const services = [
-            { id: 'cut', name: 'ตัด', price: 200, subServices: [
-                { id: 'cut-men', name: 'ตัดผมชาย', price: 200 },
-                { id: 'cut-women', name: 'ตัดผมหญิง', price: 250 }
-            ]},
-            { id: 'wash', name: 'สระ', price: 100, subServices: [
-                { id: 'wash-hot', name: 'สระด้วยน้ำร้อน', price: 100 },
-                { id: 'wash-cold', name: 'สระด้วยน้ำเย็น', price: 80 }
-            ]},
-            { id: 'style', name: 'เซ็ต/ไดร์', price: 150, subServices: [
-                { id: 'dry-simple', name: 'ไดร์ตรง', price: 150 },
-                { id: 'dry-volume', name: 'ไดร์วอลลุ่ม', price: 200 }
-            ]}
-        ];
-
-        const technicians = [
-            { id: 'tech-a', name: 'ช่างเอ' },
-            { id: 'tech-b', name: 'ช่างบี' }
-        ];
-
-        // Mock unavailable time slots for demonstration
-        const unavailableSlots = {
-            '2025-08-10': ['10:00', '11:00'],
-            '2025-08-12': ['13:00']
-        };
-
-        // --- Global State Management ---
-        const state = {
-            currentStep: 'step-start',
-            selectedDate: null,
-            selectedTime: null,
-            selectedService: null,
-            selectedSubService: null,
-            selectedTechnician: null,
-            totalPrice: 0,
-            customerProfile: {
-                displayName: '',
-                userId: ''
-            },
-            contactInfo: {
-                phone: '',
-                notes: ''
-            },
-            // The backend URL has been corrected and should be set here.
-            // Ensure this URL is correct and the backend is deployed and running.
-            backendUrl: 'https://salon-rbms.onrender.com/booking'
-        };
-
-        // --- UI Logic and Event Handlers ---
+        // --- 1. CONFIGURATION ---
+        // *** IMPORTANT ***
+        // แทนที่ URL ด้านล่างด้วย URL จริงของ Backend Server ที่คุณ Deploy บน Render
+        const backendUrl = 'https://your-render-app-url.onrender.com/api/booking';
+        const availabilityUrl = 'https://your-render-app-url.onrender.com/api/availability';
         
-        /**
-         * Switches the view to the specified step.
-         * @param {string} stepId The ID of the step to show.
-         */
-        function showStep(stepId) {
-            const steps = document.querySelectorAll('.step-content');
-            steps.forEach(step => step.classList.remove('active'));
-            document.getElementById(stepId).classList.add('active');
-            state.currentStep = stepId;
-            updateUI(stepId);
-        }
+        // ข้อมูลบริการและช่าง (สามารถดึงมาจาก Backend แทนได้ในอนาคต)
+        const services = {
+            'ตัด': ['ตัดผมชาย', 'ตัดผมหญิง'],
+            'ยืด': ['ยืดวอลลุ่ม', 'ยืดถาวร'],
+            'ดัด': ['ดัดดิจิตอล', 'ดัดสปาเพิร์ม'],
+            'ทำสี': ['ทำสีแฟชั่น', 'ทำสีปิดผมขาว']
+        };
+        const technicians = ['ช่างทดสอบ', 'ช่างเอ', 'ช่างบี'];
+        
+        // ช่วงเวลาทำการของร้าน
+        const openHours = {
+            start: 9, // 9:00
+            end: 18,  // 18:00
+            interval: 30 // 30 นาที
+        };
 
-        /**
-         * Updates the UI elements based on the current step and selected state.
-         * @param {string} stepId The ID of the current step.
-         */
-        function updateUI(stepId) {
-            switch(stepId) {
-                case 'step-date':
-                    generateCalendar();
-                    generateTimeSlots();
-                    break;
-                case 'step-service':
-                    generateMainServices();
-                    document.getElementById('service-next-btn').disabled = !state.selectedService;
-                    break;
-                case 'step-sub-service':
-                    generateSubServices();
-                    document.getElementById('sub-service-next-btn').disabled = !state.selectedSubService;
-                    break;
-                case 'step-technician':
-                    generateTechnicians();
-                    document.getElementById('technician-next-btn').disabled = !state.selectedTechnician;
-                    break;
-                case 'step-summary':
-                    updateSummary();
-                    break;
+        // --- 2. DOM ELEMENTS ---
+        const dateInput = document.getElementById('date');
+        const timeSlotsContainer = document.getElementById('timeSlots');
+        const timeStatusMessage = document.getElementById('timeStatusMessage');
+        const mainServiceSelect = document.getElementById('mainService');
+        const subServiceSelect = document.getElementById('subService');
+        const technicianSelect = document.getElementById('technician');
+        const customerNameInput = document.getElementById('customerName');
+        const lineUserIdInput = document.getElementById('lineUserId');
+        const bookingForm = document.getElementById('bookingForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let userProfile = null;
+        let selectedTime = null;
+
+        // --- 3. UI SETUP FUNCTIONS ---
+
+        // Function เพื่อเติมตัวเลือกบริการ
+        function populateServiceOptions() {
+            for (const service in services) {
+                const option = document.createElement('option');
+                option.value = service;
+                option.textContent = service;
+                mainServiceSelect.appendChild(option);
             }
         }
-
-        /**
-         * Generates and displays a calendar for the current month.
-         */
-        function generateCalendar() {
-            const calendarContainer = document.getElementById('calendar-container');
-            calendarContainer.innerHTML = ''; // Clear previous content
-
-            const today = new Date();
-            const currentYear = today.getFullYear();
-            const currentMonth = today.getMonth();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-            const monthName = new Date(currentYear, currentMonth).toLocaleString('th-TH', { month: 'long', year: 'numeric' });
-            
-            const header = document.createElement('h3');
-            header.className = 'text-xl font-bold mb-4 text-center';
-            header.textContent = monthName;
-            calendarContainer.appendChild(header);
-
-            const grid = document.createElement('div');
-            grid.className = 'grid grid-cols-7 gap-1 text-center text-sm';
-            
-            // Day of the week headers
-            const daysOfWeek = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
-            daysOfWeek.forEach(day => {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'text-gray-500 font-semibold';
-                dayEl.textContent = day;
-                grid.appendChild(dayEl);
-            });
-
-            // Empty cells for days before the 1st
-            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-            for (let i = 0; i < firstDayOfMonth; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
-
-            // Days of the month
-            for (let i = 1; i <= daysInMonth; i++) {
-                const date = new Date(currentYear, currentMonth, i);
-                const dateString = date.toISOString().slice(0, 10);
-                const dayEl = document.createElement('button');
-                dayEl.className = `p-2 rounded-lg transition-colors duration-200 focus:outline-none ${date.getDay() === 0 || date.getDay() === 6 ? 'text-red-500' : 'text-gray-800'} ${date.setHours(0,0,0,0) < today.setHours(0,0,0,0) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-green-100'}`;
-                dayEl.textContent = i;
-                dayEl.disabled = date.setHours(0,0,0,0) < today.setHours(0,0,0,0);
-                dayEl.onclick = () => selectDate(dateString, dayEl);
-
-                if (state.selectedDate === dateString) {
-                    dayEl.classList.remove('bg-white', 'hover:bg-green-100');
-                    dayEl.classList.add('bg-green-500', 'text-white');
-                }
-
-                grid.appendChild(dayEl);
-            }
-
-            calendarContainer.appendChild(grid);
-        }
-
-        /**
-         * Selects a date and updates the state and UI.
-         * @param {string} dateString The selected date in 'YYYY-MM-DD' format.
-         * @param {HTMLElement} element The clicked button element.
-         */
-        function selectDate(dateString, element) {
-            const prevSelected = document.querySelector('#calendar-container button.bg-green-500');
-            if (prevSelected) {
-                prevSelected.classList.remove('bg-green-500', 'text-white');
-                prevSelected.classList.add('bg-white', 'hover:bg-green-100');
-            }
-            element.classList.remove('bg-white', 'hover:bg-green-100');
-            element.classList.add('bg-green-500', 'text-white');
-
-            state.selectedDate = dateString;
-            state.selectedTime = null; // Reset time selection
-            generateTimeSlots();
-        }
-
-        /**
-         * Generates and displays time slots for the selected date.
-         */
-        function generateTimeSlots() {
-            const timeSlotsContainer = document.getElementById('time-slots');
-            timeSlotsContainer.innerHTML = '';
-            if (!state.selectedDate) return;
-
-            const slots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
-            const unavailableForDate = unavailableSlots[state.selectedDate] || [];
-
-            slots.forEach(slot => {
-                const slotBtn = document.createElement('button');
-                const isUnavailable = unavailableForDate.includes(slot);
-                slotBtn.textContent = slot;
-                slotBtn.className = `p-2 rounded-lg font-medium transition-colors duration-200 ${isUnavailable ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white hover:bg-green-100 text-gray-800'}`;
-                slotBtn.disabled = isUnavailable;
-                if (!isUnavailable) {
-                    slotBtn.onclick = () => selectTime(slot, slotBtn);
-                }
-
-                if (state.selectedTime === slot) {
-                    slotBtn.classList.remove('bg-white', 'hover:bg-green-100');
-                    slotBtn.classList.add('bg-green-500', 'text-white');
-                }
-
-                timeSlotsContainer.appendChild(slotBtn);
-            });
-        }
-
-        /**
-         * Selects a time slot and updates the state and UI.
-         * @param {string} time The selected time.
-         * @param {HTMLElement} element The clicked button element.
-         */
-        function selectTime(time, element) {
-            const prevSelected = document.querySelector('#time-slots button.bg-green-500');
-            if (prevSelected) {
-                prevSelected.classList.remove('bg-green-500', 'text-white');
-                prevSelected.classList.add('bg-white', 'hover:bg-green-100');
-            }
-            element.classList.remove('bg-white', 'hover:bg-green-100');
-            element.classList.add('bg-green-500', 'text-white');
-            state.selectedTime = time;
-        }
-
-        /**
-         * Generates and displays main service options.
-         */
-        function generateMainServices() {
-            const serviceContainer = document.getElementById('main-services');
-            serviceContainer.innerHTML = '';
-            services.forEach(service => {
-                const serviceBtn = document.createElement('button');
-                serviceBtn.textContent = `${service.name} (฿${service.price})`;
-                serviceBtn.className = `w-full p-4 text-left rounded-lg transition-colors duration-200 ${state.selectedService && state.selectedService.id.startsWith(service.id) ? 'bg-green-500 text-white' : 'bg-gray-100 hover:bg-green-100 text-gray-800'}`;
-                serviceBtn.onclick = () => selectMainService(service, serviceBtn);
-                serviceContainer.appendChild(serviceBtn);
-            });
-        }
-
-        /**
-         * Selects a main service and updates the state and UI.
-         * @param {object} service The selected service object.
-         * @param {HTMLElement} element The clicked button element.
-         */
-        function selectMainService(service, element) {
-            const prevSelected = document.querySelector('#main-services button.bg-green-500');
-            if (prevSelected) {
-                prevSelected.classList.remove('bg-green-500', 'text-white');
-                prevSelected.classList.add('bg-gray-100', 'hover:bg-green-100');
-            }
-            element.classList.remove('bg-gray-100', 'hover:bg-green-100');
-            element.classList.add('bg-green-500', 'text-white');
-            
-            state.selectedService = service;
-            state.selectedSubService = null;
-            document.getElementById('service-next-btn').disabled = false;
-        }
-
-        /**
-         * Generates and displays sub-service options based on the selected main service.
-         */
-        function generateSubServices() {
-            const subServiceContainer = document.getElementById('sub-services');
-            subServiceContainer.innerHTML = '';
-            if (!state.selectedService) return;
-
-            state.selectedService.subServices.forEach(subService => {
-                const subServiceBtn = document.createElement('button');
-                subServiceBtn.textContent = `${subService.name} (฿${subService.price})`;
-                subServiceBtn.className = `w-full p-4 text-left rounded-lg transition-colors duration-200 ${state.selectedSubService && state.selectedSubService.id === subService.id ? 'bg-green-500 text-white' : 'bg-gray-100 hover:bg-green-100 text-gray-800'}`;
-                subServiceBtn.onclick = () => selectSubService(subService, subServiceBtn);
-                subServiceContainer.appendChild(subServiceBtn);
-            });
-        }
-
-        /**
-         * Selects a sub-service and updates the state and UI.
-         * @param {object} subService The selected sub-service object.
-         * @param {HTMLElement} element The clicked button element.
-         */
-        function selectSubService(subService, element) {
-            const prevSelected = document.querySelector('#sub-services button.bg-green-500');
-            if (prevSelected) {
-                prevSelected.classList.remove('bg-green-500', 'text-white');
-                prevSelected.classList.add('bg-gray-100', 'hover:bg-green-100');
-            }
-            element.classList.remove('bg-gray-100', 'hover:bg-green-100');
-            element.classList.add('bg-green-500', 'text-white');
-            state.selectedSubService = subService;
-            document.getElementById('sub-service-next-btn').disabled = false;
-        }
-
-        /**
-         * Generates and displays technician options.
-         */
-        function generateTechnicians() {
-            const technicianContainer = document.getElementById('technicians');
-            technicianContainer.innerHTML = '';
-            technicians.forEach(technician => {
-                const technicianBtn = document.createElement('button');
-                technicianBtn.textContent = technician.name;
-                technicianBtn.className = `w-full p-4 text-left rounded-lg transition-colors duration-200 ${state.selectedTechnician && state.selectedTechnician.id === technician.id ? 'bg-green-500 text-white' : 'bg-gray-100 hover:bg-green-100 text-gray-800'}`;
-                technicianBtn.onclick = () => selectTechnician(technician, technicianBtn);
-                technicianContainer.appendChild(technicianBtn);
-            });
-        }
-
-        /**
-         * Selects a technician and updates the state and UI.
-         * @param {object} technician The selected technician object.
-         * @param {HTMLElement} element The clicked button element.
-         */
-        function selectTechnician(technician, element) {
-            const prevSelected = document.querySelector('#technicians button.bg-green-500');
-            if (prevSelected) {
-                prevSelected.classList.remove('bg-green-500', 'text-white');
-                prevSelected.classList.add('bg-gray-100', 'hover:bg-green-100');
-            }
-            element.classList.remove('bg-gray-100', 'hover:bg-green-100');
-            element.classList.add('bg-green-500', 'text-white');
-            state.selectedTechnician = technician;
-            document.getElementById('technician-next-btn').disabled = false;
-        }
-
-        /**
-         * Updates the summary screen with all selected booking details.
-         */
-        function updateSummary() {
-            if (state.selectedDate && state.selectedTime) {
-                const selectedDateTime = new Date(`${state.selectedDate}T${state.selectedTime}:00`);
-                const formattedDate = selectedDateTime.toLocaleDateString('th-TH', { dateStyle: 'long' });
-                document.getElementById('summary-datetime').textContent = `${formattedDate} เวลา ${state.selectedTime} น.`;
-            }
-
-            let serviceSummary = '';
-            let totalPrice = 0;
-            if (state.selectedService) {
-                serviceSummary += state.selectedService.name;
-                totalPrice += state.selectedService.price;
-            }
-            if (state.selectedSubService) {
-                serviceSummary += ` > ${state.selectedSubService.name}`;
-                // Fix: add sub-service price instead of replacing
-                totalPrice += state.selectedSubService.price;
-            }
-
-            document.getElementById('summary-service').textContent = serviceSummary;
-            document.getElementById('summary-technician').textContent = state.selectedTechnician ? state.selectedTechnician.name : 'ยังไม่ได้เลือก';
-            document.getElementById('summary-price').textContent = totalPrice.toLocaleString('th-TH');
-            state.totalPrice = totalPrice;
-
-            // This would be replaced with actual LINE profile data fetch
-            document.getElementById('customer-name').textContent = state.customerProfile.displayName;
-            document.getElementById('customer-id').textContent = state.customerProfile.userId;
-        }
-
-        /**
-         * Custom modal for displaying messages
-         * @param {string} title The title of the message.
-         * @param {string} message The message content.
-         */
-        function showModal(title, message) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            document.getElementById('custom-modal').classList.remove('hidden');
-            document.getElementById('custom-modal').style.display = 'flex';
-        }
-
-        /**
-         * Hides the custom modal.
-         */
-        function hideModal() {
-            document.getElementById('custom-modal').classList.add('hidden');
-            document.getElementById('custom-modal').style.display = 'none';
-        }
-
-        /**
-         * Sends booking data to the backend server.
-         */
-        async function confirmBooking() {
-            // Check for required fields before sending
-            if (!state.selectedDate || !state.selectedTime || !state.selectedService || !state.selectedSubService || !state.selectedTechnician) {
-                showModal('ข้อมูลไม่ครบถ้วน', 'กรุณาเลือกวัน, เวลา, บริการ และช่างให้ครบถ้วนก่อนยืนยัน');
-                return;
-            }
-            
-            // Show loading indicator
-            document.getElementById('loading-overlay').classList.remove('hidden');
-
-            state.contactInfo.phone = document.getElementById('phone').value;
-            state.contactInfo.notes = document.getElementById('notes').value;
-
-            // Prepare data for the backend
-            const bookingData = {
-                date: state.selectedDate,
-                time: state.selectedTime,
-                mainService: state.selectedService.name,
-                subService: state.selectedSubService ? state.selectedSubService.name : null,
-                technician: state.selectedTechnician.name,
-                price: state.totalPrice,
-                customerName: state.customerProfile.displayName,
-                lineUserId: state.customerProfile.userId,
-                phone: state.contactInfo.phone,
-                notes: state.contactInfo.notes,
-            };
-
-            try {
-                // Correct fetch call using the backendUrl variable
-                const response = await fetch(state.backendUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bookingData)
+        
+        // Function เพื่อเติมตัวเลือกบริการย่อยตามบริการหลักที่เลือก
+        function populateSubServiceOptions(selectedService) {
+            subServiceSelect.innerHTML = '<option value="" disabled selected>เลือกบริการย่อย</option>';
+            if (selectedService && services[selectedService]) {
+                services[selectedService].forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = sub;
+                    subServiceSelect.appendChild(option);
                 });
-                
-                // Check if the response is successful
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showStep('step-confirmation');
-                } else {
-                    showModal('เกิดข้อผิดพลาด', 'เกิดข้อผิดพลาดในการยืนยันการจอง: ' + (result.message || 'ไม่ทราบสาเหตุ'));
-                }
-
-            } catch (error) {
-                console.error('Error during booking confirmation:', error);
-                showModal('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ โปรดตรวจสอบ URL หรือลองใหม่อีกครั้ง');
-            } finally {
-                // Hide loading indicator
-                document.getElementById('loading-overlay').classList.add('hidden');
             }
         }
 
-        // Initialize LIFF and the first step when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize LIFF first, then check login status
-            liff.init({
-                // ** IMPORTANT: Replace with your actual LIFF ID **
-                liffId: '2007895406-VWgOqgvW'
-            }).then(() => {
+        // Function เพื่อเติมตัวเลือกช่าง
+        function populateTechnicianOptions() {
+            technicians.forEach(tech => {
+                const option = document.createElement('option');
+                option.value = tech;
+                option.textContent = tech;
+                technicianSelect.appendChild(option);
+            });
+        }
+
+        // Function เพื่อตั้งค่าวันที่เริ่มต้น
+        function setMinDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.min = `${year}-${month}-${day}`;
+        }
+
+        // Function เพื่อสร้างช่องเวลา
+        function generateTimeSlots(bookedSlots = []) {
+            timeSlotsContainer.innerHTML = ''; // เคลียร์ช่องเวลาเดิม
+            selectedTime = null; // รีเซ็ตเวลาที่เลือก
+            let hasAvailableSlots = false;
+            
+            const now = new Date();
+            const selectedDate = new Date(dateInput.value);
+            const isToday = selectedDate.toDateString() === now.toDateString();
+
+            for (let hour = openHours.start; hour <= openHours.end; hour++) {
+                for (let minute = 0; minute < 60; minute += openHours.interval) {
+                    // ไม่สร้างช่องเวลาถ้าเกินเวลาปิด
+                    if (hour === openHours.end && minute > 0) continue;
+
+                    const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                    const slotElement = document.createElement('div');
+                    slotElement.textContent = time;
+                    slotElement.classList.add('time-slot');
+
+                    const isTimePast = isToday && (new Date(selectedDate.setHours(hour, minute)) < now);
+                    const isBooked = bookedSlots.includes(time);
+
+                    if (isBooked || isTimePast) {
+                        slotElement.classList.add('booked');
+                        slotElement.disabled = true;
+                    } else {
+                        slotElement.classList.add('available');
+                        slotElement.addEventListener('click', () => {
+                            // ลบคลาส 'selected' จากช่องเวลาอื่น
+                            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
+                            // เพิ่มคลาส 'selected' ในช่องเวลาที่ถูกเลือก
+                            slotElement.classList.add('selected');
+                            selectedTime = time;
+                            // อัปเดตสถานะปุ่มจอง
+                            checkFormValidity();
+                        });
+                        hasAvailableSlots = true;
+                    }
+
+                    timeSlotsContainer.appendChild(slotElement);
+                }
+            }
+            timeStatusMessage.textContent = hasAvailableSlots ? '' : 'ขออภัย วันนี้คิวเต็มแล้ว';
+            timeStatusMessage.classList.toggle('hidden', hasAvailableSlots);
+        }
+
+        // Function เพื่อตรวจสอบความพร้อมของฟอร์ม
+        function checkFormValidity() {
+            const isValid = bookingForm.checkValidity() && selectedTime;
+            submitBtn.disabled = !isValid;
+        }
+
+        // --- 4. LIFF INITIALIZATION & AVAILABILITY CHECK ---
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: '2007895406-VWgOqgvW' }); // *** อย่าลืมแทนที่ด้วย LIFF ID ของคุณ ***
+                
                 if (liff.isLoggedIn()) {
-                    liff.getProfile().then(profile => {
-                        state.customerProfile.displayName = profile.displayName;
-                        state.customerProfile.userId = profile.userId;
-                        document.getElementById('customer-name').textContent = state.customerProfile.displayName;
-                        document.getElementById('customer-id').textContent = state.customerProfile.userId;
-                        showStep('step-start');
-                    }).catch(err => {
-                        console.error('Error getting LIFF profile:', err);
-                        showModal('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลโปรไฟล์จาก LINE ได้');
-                        showStep('step-start');
-                    });
+                    userProfile = await liff.getProfile();
+                    customerNameInput.value = userProfile.displayName;
+                    lineUserIdInput.value = userProfile.userId;
+                    
+                    submitBtn.textContent = 'ยืนยันการจอง';
+                    submitBtn.disabled = false;
                 } else {
                     liff.login();
                 }
-            }).catch(err => {
-                console.error('LIFF initialization failed:', err);
-                showModal('เกิดข้อผิดพลาด', 'LIFF initialization failed. Please try again.');
-            });
+            } catch (error) {
+                console.error('LIFF initialization failed', error);
+                statusMessage.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ LINE LIFF';
+            }
+        }
+        
+        async function fetchBookedSlots(date) {
+            if (!date) {
+                generateTimeSlots();
+                return;
+            }
+            
+            statusMessage.textContent = 'กำลังตรวจสอบคิวว่าง...';
+            statusMessage.classList.remove('hidden');
+            
+            try {
+                // Fetch booked slots for the selected date
+                const response = await fetch(`${availabilityUrl}?date=${date}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const bookedSlots = await response.json();
+                
+                generateTimeSlots(bookedSlots);
+                
+                statusMessage.textContent = ''; // Clear status message
+                statusMessage.classList.add('hidden');
+            } catch (error) {
+                console.error('Error fetching booked slots:', error);
+                statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการตรวจสอบคิวว่าง';
+                statusMessage.classList.remove('hidden');
+                generateTimeSlots(); // Show empty or default slots
+            }
+        }
+
+        // --- 5. EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setMinDate();
+            populateServiceOptions();
+            populateTechnicianOptions();
+            initializeLiff();
+            
+            // Generate initial time slots on load
+            generateTimeSlots();
         });
+
+        dateInput.addEventListener('change', (event) => {
+            fetchBookedSlots(event.target.value);
+            checkFormValidity();
+        });
+
+        mainServiceSelect.addEventListener('change', (event) => {
+            populateSubServiceOptions(event.target.value);
+            checkFormValidity();
+        });
+        
+        technicianSelect.addEventListener('change', () => {
+            checkFormValidity();
+        });
+
+        bookingForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); 
+            
+            submitBtn.textContent = 'กำลังส่งข้อมูล...';
+            submitBtn.disabled = true;
+            statusMessage.textContent = 'โปรดรอสักครู่...';
+            statusMessage.classList.remove('hidden', 'text-green-600', 'text-red-600');
+            
+            const bookingData = {
+                timestamp: new Date().toISOString(),
+                date: dateInput.value,
+                time: selectedTime,
+                mainService: mainServiceSelect.value,
+                subService: subServiceSelect.value,
+                technician: technicianSelect.value,
+                price: parseInt(document.getElementById('price').value, 10),
+                customerName: customerNameInput.value,
+                lineUserId: lineUserIdInput.value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                notes: document.getElementById('notes').value,
+            };
+            
+            console.log('Sending booking data:', bookingData);
+
+            try {
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bookingData),
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    statusMessage.textContent = '✅ จองคิวสำเร็จแล้ว! ระบบจะแจ้งเตือนใน LINE ครับ';
+                    statusMessage.classList.add('text-green-600');
+                    liff.closeWindow();
+                } else {
+                    statusMessage.textContent = `❌ เกิดข้อผิดพลาด: ${result.message}`;
+                    statusMessage.classList.add('text-red-600');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์';
+                statusMessage.classList.add('text-red-600');
+            } finally {
+                submitBtn.textContent = 'ยืนยันการจอง';
+                submitBtn.disabled = false;
+            }
+        });
+        
     </script>
 </body>
 </html>
