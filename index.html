@@ -3,263 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจองคิวออนไลน์</title>
-    <!-- LIFF SDK -->
-    <script src="https://static.line-scdn.net/liff/2.22.3/liff.js"></script>
-    <!-- Tailwind CSS CDN for styling -->
+    <title>LIFF Test</title>
+    <!-- Tailwind CSS for basic styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Prompt:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap');
         body {
             font-family: 'Prompt', sans-serif;
             background-color: #f0f2f5;
         }
         .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
-        .form-input, .form-select {
-            @apply block w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-200;
-        }
-        .btn-primary {
-            @apply w-full py-4 px-4 bg-green-500 text-white font-bold rounded-lg shadow-lg hover:bg-green-600 transition duration-300 ease-in-out;
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 2rem;
         }
     </style>
 </head>
 <body>
 
-    <div class="container bg-white rounded-xl shadow-2xl mt-8">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">จองคิวออนไลน์</h1>
-        <p class="text-center text-gray-600 mb-8">กรุณากรอกรายละเอียดเพื่อทำการจองคิว</p>
+    <div class="container bg-white rounded-xl shadow-lg p-8 space-y-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800">ทดสอบการเชื่อมต่อ LIFF</h1>
+        <p class="text-center text-gray-600">สถานะการเชื่อมต่อจะแสดงด้านล่าง</p>
+
+        <!-- Display Area -->
+        <div id="statusSection" class="p-4 rounded-lg text-center">
+            <p id="statusMessage" class="font-medium text-gray-700">กำลังโหลด LIFF SDK...</p>
+        </div>
         
-        <form id="bookingForm" class="space-y-6">
-            
-            <!-- Date and Time -->
-            <div class="flex flex-col sm:flex-row gap-4">
-                <div class="w-full sm:w-1/2">
-                    <label for="date" class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
-                    <input type="date" id="date" class="form-input" required>
-                </div>
-                <div class="w-full sm:w-1/2">
-                    <label for="time" class="block text-sm font-medium text-gray-700 mb-1">เวลา</label>
-                    <input type="time" id="time" class="form-input" required>
-                </div>
-            </div>
-
-            <!-- Main Service and Sub Service -->
-            <div>
-                <label for="mainService" class="block text-sm font-medium text-gray-700 mb-1">บริการหลัก</label>
-                <select id="mainService" class="form-select" required>
-                    <option value="" disabled selected>เลือกบริการหลัก</option>
-                </select>
-            </div>
-            <div>
-                <label for="subService" class="block text-sm font-medium text-gray-700 mb-1">บริการย่อย</label>
-                <select id="subService" class="form-select" required>
-                    <option value="" disabled selected>เลือกบริการย่อย</option>
-                </select>
-            </div>
-
-            <!-- Technician -->
-            <div>
-                <label for="technician" class="block text-sm font-medium text-gray-700 mb-1">เลือกช่าง</label>
-                <select id="technician" class="form-select" required>
-                    <option value="" disabled selected>เลือกช่าง</option>
-                </select>
-            </div>
-
-            <!-- Price (hidden input for now) -->
-            <input type="hidden" id="price" value="0">
-
-            <!-- Customer Info -->
-            <div>
-                <label for="customerName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อลูกค้า</label>
-                <input type="text" id="customerName" class="form-input" readonly>
-            </div>
-            <div>
-                <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
-                <input type="tel" id="phoneNumber" class="form-input" placeholder="0812345678" required>
-            </div>
-            <div>
-                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
-                <textarea id="notes" class="form-input h-24" placeholder="ข้อความถึงช่าง..."></textarea>
-            </div>
-            
-            <input type="hidden" id="lineUserId">
-
-            <!-- Submit Button -->
-            <button type="submit" id="submitBtn" class="btn-primary" disabled>
-                กำลังโหลด...
-            </button>
-        </form>
-
-        <div id="statusMessage" class="text-center mt-4 text-sm font-medium"></div>
+        <div id="userInfo" class="hidden p-6 bg-gray-100 rounded-lg space-y-3">
+            <h2 class="text-xl font-semibold text-gray-800">ข้อมูลผู้ใช้</h2>
+            <p><strong>ชื่อ:</strong> <span id="displayName" class="text-blue-600"></span></p>
+            <p><strong>User ID:</strong> <span id="userId" class="text-green-600 break-all"></span></p>
+        </div>
     </div>
 
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/2.22.3/liff.js"></script>
     <script>
-        // --- 1. CONFIGURATION ---
-        // *** IMPORTANT ***
-        // แทนที่ URL ด้านล่างด้วย URL จริงของ Backend Server ที่คุณ Deploy บน Render
-        const backendUrl = 'https://salon-rbms.onrender.com/api/booking';
-        
-        // ข้อมูลบริการและช่าง (สามารถดึงมาจาก Backend แทนได้ในอนาคต)
-        const services = {
-            'ตัด': ['ตัดผมชาย', 'ตัดผมหญิง'],
-            'ยืด': ['ยืดวอลลุ่ม', 'ยืดถาวร'],
-            'ดัด': ['ดัดดิจิตอล', 'ดัดสปาเพิร์ม'],
-            'ทำสี': ['ทำสีแฟชั่น', 'ทำสีปิดผมขาว']
-        };
-        const technicians = ['ช่างทดสอบ', 'ช่างเอ', 'ช่างบี'];
+        // *** สำคัญมาก! ***
+        // เปลี่ยน LIFF ID นี้เป็นของที่คุณต้องการทดสอบ
+        const liffId = '2007895406-VWgOqgvW'; 
 
-        // --- 2. DOM ELEMENTS ---
-        const dateInput = document.getElementById('date');
-        const timeInput = document.getElementById('time');
-        const mainServiceSelect = document.getElementById('mainService');
-        const subServiceSelect = document.getElementById('subService');
-        const technicianSelect = document.getElementById('technician');
-        const customerNameInput = document.getElementById('customerName');
-        const lineUserIdInput = document.getElementById('lineUserId');
-        const bookingForm = document.getElementById('bookingForm');
-        const submitBtn = document.getElementById('submitBtn');
+        const statusSection = document.getElementById('statusSection');
         const statusMessage = document.getElementById('statusMessage');
+        const userInfoDiv = document.getElementById('userInfo');
+        const displayNameSpan = document.getElementById('displayName');
+        const userIdSpan = document.getElementById('userId');
 
-        let userProfile = null;
-
-        // --- 3. UI SETUP FUNCTIONS ---
-
-        // Function เพื่อเติมตัวเลือกบริการ
-        function populateServiceOptions() {
-            for (const service in services) {
-                const option = document.createElement('option');
-                option.value = service;
-                option.textContent = service;
-                mainServiceSelect.appendChild(option);
-            }
-        }
-        
-        // Function เพื่อเติมตัวเลือกบริการย่อยตามบริการหลักที่เลือก
-        function populateSubServiceOptions(selectedService) {
-            subServiceSelect.innerHTML = '<option value="" disabled selected>เลือกบริการย่อย</option>';
-            if (selectedService && services[selectedService]) {
-                services[selectedService].forEach(sub => {
-                    const option = document.createElement('option');
-                    option.value = sub;
-                    option.textContent = sub;
-                    subServiceSelect.appendChild(option);
-                });
-            }
-        }
-
-        // Function เพื่อเติมตัวเลือกช่าง
-        function populateTechnicianOptions() {
-            technicians.forEach(tech => {
-                const option = document.createElement('option');
-                option.value = tech;
-                option.textContent = tech;
-                technicianSelect.appendChild(option);
-            });
-        }
-
-        // Function เพื่อตั้งค่าวันที่เริ่มต้น
-        function setMinDate() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            dateInput.min = `${year}-${month}-${day}`;
-        }
-        
-        // --- 4. LIFF INITIALIZATION ---
+        // ฟังก์ชันหลักสำหรับเริ่มต้น LIFF
         async function initializeLiff() {
             try {
-                // Initialize LIFF
-                await liff.init({ liffId: '2007895406-VWgOqgvW' }); // *** อย่าลืมแทนที่ด้วย LIFF ID ของคุณ ***
+                // แสดงสถานะว่ากำลังเชื่อมต่อ
+                statusMessage.textContent = 'กำลังเชื่อมต่อกับ LIFF...';
+                statusSection.classList.remove('bg-green-100', 'bg-red-100');
+                statusSection.classList.add('bg-gray-100');
                 
+                // เริ่มต้น LIFF SDK
+                await liff.init({ liffId: liffId });
+
+                // ตรวจสอบว่าผู้ใช้เข้าสู่ระบบหรือไม่
                 if (liff.isLoggedIn()) {
-                    // Get user profile if logged in
-                    userProfile = await liff.getProfile();
-                    customerNameInput.value = userProfile.displayName;
-                    lineUserIdInput.value = userProfile.userId;
+                    // หากเข้าสู่ระบบแล้ว ให้ดึงข้อมูลโปรไฟล์
+                    const profile = await liff.getProfile();
                     
-                    submitBtn.textContent = 'ยืนยันการจอง';
-                    submitBtn.disabled = false;
+                    // แสดงผลข้อมูลผู้ใช้
+                    displayNameSpan.textContent = profile.displayName;
+                    userIdSpan.textContent = profile.userId;
+
+                    // แสดงส่วนข้อมูลผู้ใช้
+                    userInfoDiv.classList.remove('hidden');
+
+                    // แสดงข้อความสำเร็จ
+                    statusMessage.textContent = '✅ เชื่อมต่อสำเร็จและดึงข้อมูลผู้ใช้ได้แล้ว!';
+                    statusSection.classList.remove('bg-gray-100');
+                    statusSection.classList.add('bg-green-100');
+                    console.log('LIFF initialization successful. User Profile:', profile);
                 } else {
-                    // If not logged in, redirect to login page
+                    // หากยังไม่ได้เข้าสู่ระบบ ให้พาไปหน้า Login
+                    statusMessage.textContent = 'กรุณาเข้าสู่ระบบ LINE เพื่อดำเนินการต่อ...';
+                    statusSection.classList.remove('bg-gray-100');
+                    statusSection.classList.add('bg-yellow-100');
                     liff.login();
                 }
             } catch (error) {
-                console.error('LIFF initialization failed', error);
-                statusMessage.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ LINE LIFF';
+                // หากเกิดข้อผิดพลาดในการเชื่อมต่อ
+                statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF: ' + error.message;
+                statusSection.classList.remove('bg-gray-100');
+                statusSection.classList.add('bg-red-100');
+                console.error('LIFF initialization failed:', error);
             }
         }
         
-        // --- 5. EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            setMinDate();
-            populateServiceOptions();
-            populateTechnicianOptions();
+        // เริ่มต้นการทำงานเมื่อหน้าเว็บโหลดเสร็จ
+        window.onload = function() {
             initializeLiff();
-        });
-
-        mainServiceSelect.addEventListener('change', (event) => {
-            populateSubServiceOptions(event.target.value);
-        });
-
-        bookingForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); // ป้องกันการ reload หน้าเว็บ
-            
-            submitBtn.textContent = 'กำลังส่งข้อมูล...';
-            submitBtn.disabled = true;
-            statusMessage.textContent = 'โปรดรอสักครู่...';
-            
-            // Collect form data
-            const bookingData = {
-                timestamp: new Date().toISOString(),
-                date: dateInput.value,
-                time: timeInput.value,
-                mainService: mainServiceSelect.value,
-                subService: subServiceSelect.value,
-                technician: technicianSelect.value,
-                price: parseInt(document.getElementById('price').value, 10),
-                customerName: customerNameInput.value,
-                lineUserId: lineUserIdInput.value,
-                phoneNumber: document.getElementById('phoneNumber').value,
-                notes: document.getElementById('notes').value,
-            };
-            
-            console.log('Sending booking data:', bookingData);
-
-            try {
-                const response = await fetch(backendUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(bookingData),
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    statusMessage.textContent = '✅ จองคิวสำเร็จแล้ว! ระบบจะแจ้งเตือนใน LINE ครับ';
-                    statusMessage.classList.add('text-green-600');
-                    // ปิดหน้า LIFF หลังจากจองสำเร็จ
-                    liff.closeWindow();
-                } else {
-                    statusMessage.textContent = `❌ เกิดข้อผิดพลาด: ${result.message}`;
-                    statusMessage.classList.add('text-red-600');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                statusMessage.textContent = '❌ เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์';
-                statusMessage.classList.add('text-red-600');
-            } finally {
-                submitBtn.textContent = 'ยืนยันการจอง';
-                submitBtn.disabled = false;
-            }
-        });
-        
+        };
     </script>
 </body>
 </html>
