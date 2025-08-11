@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจองคิวออนไลน์</title>
+    <!-- Use Tailwind CSS for modern and responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/2.22.3/liff.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 1rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .step-content {
+            flex-grow: 1;
+            display: none;
+        }
+        .step-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .btn-primary {
+            @apply bg-green-500 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-all duration-300 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75;
+        }
+        .btn-secondary {
+            @apply bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-full shadow-md transition-all duration-300 hover:bg-gray-300 focus:outline-none;
+        }
+        .card {
+            @apply bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-4;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Main App Screen -->
+        <div id="step-start" class="step-content active justify-center items-center text-center">
+            <div class="p-8">
+                <h1 class="text-3xl font-bold mb-4 text-gray-800">ยินดีต้อนรับสู่ระบบจองคิว</h1>
+                <p class="text-gray-600 mb-8">กดปุ่มด้านล่างเพื่อเริ่มจองคิว</p>
+                <button class="btn-primary" onclick="showStep('step-date')">
+                    จองคิว
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 1: Select Date and Time -->
+        <div id="step-date" class="step-content">
+            <h2 class="text-2xl font-bold mb-4 text-center">เลือกวันและเวลา</h2>
+            <div class="card flex-grow overflow-y-auto">
+                <!-- Calendar will be generated here by JS -->
+                <div id="calendar-container" class="mb-4"></div>
+                <div id="time-slots" class="grid grid-cols-3 gap-2">
+                    <!-- Time slots will be generated here by JS -->
+                </div>
+            </div>
+            <button class="btn-primary mt-4" onclick="showStep('step-service')">
+                ต่อไป
+            </button>
+            <button class="btn-secondary mt-2" onclick="showStep('step-start')">
+                ย้อนกลับ
+            </button>
+        </div>
+
+        <!-- Step 2: Select Main Service -->
+        <div id="step-service" class="step-content">
+            <h2 class="text-2xl font-bold mb-4 text-center">เลือกบริการหลัก</h2>
+            <div class="card flex-grow overflow-y-auto">
+                <div id="main-services" class="space-y-4">
+                    <!-- Main services will be generated here by JS -->
+                </div>
+            </div>
+            <button class="btn-primary mt-4" onclick="showStep('step-sub-service')" disabled id="service-next-btn">
+                ต่อไป
+            </button>
+            <button class="btn-secondary mt-2" onclick="showStep('step-date')">
+                ย้อนกลับ
+            </button>
+        </div>
+
+        <!-- Step 3: Select Sub-Service -->
+        <div id="step-sub-service" class="step-content">
+            <h2 class="text-2xl font-bold mb-4 text-center">เลือกบริการย่อย</h2>
+            <div class="card flex-grow overflow-y-auto">
+                <div id="sub-services" class="space-y-4">
+                    <!-- Sub-services will be generated here by JS -->
+                </div>
+            </div>
+            <button class="btn-primary mt-4" onclick="showStep('step-technician')" disabled id="sub-service-next-btn">
+                ต่อไป
+            </button>
+            <button class="btn-secondary mt-2" onclick="showStep('step-service')">
+                ย้อนกลับ
+            </button>
+        </div>
+
+        <!-- Step 4: Select Technician -->
+        <div id="step-technician" class="step-content">
+            <h2 class="text-2xl font-bold mb-4 text-center">เลือกช่าง</h2>
+            <div class="card flex-grow overflow-y-auto">
+                <div id="technicians" class="space-y-4">
+                    <!-- Technicians will be generated here by JS -->
+                </div>
+            </div>
+            <button class="btn-primary mt-4" onclick="showStep('step-summary')" disabled id="technician-next-btn">
+                ต่อไป
+            </button>
+            <button class="btn-secondary mt-2" onclick="showStep('step-sub-service')">
+                ย้อนกลับ
+            </button>
+        </div>
+
+        <!-- Step 5: Summary and Contact Info -->
+        <div id="step-summary" class="step-content">
+            <h2 class="text-2xl font-bold mb-4 text-center">สรุปและยืนยัน</h2>
+            <div class="card flex-grow overflow-y-auto">
+                <!-- Customer profile (simulated) -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700">ข้อมูลลูกค้า</h3>
+                    <p class="text-gray-600">ชื่อ: <span id="customer-name"></span></p>
+                    <p class="text-gray-600">LINE User ID: <span id="customer-id"></span></p>
+                </div>
+                
+                <!-- Booking details summary -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700">รายละเอียดการจอง</h3>
+                    <p class="text-gray-600">วันและเวลา: <span id="summary-datetime"></span></p>
+                    <p class="text-gray-600">บริการ: <span id="summary-service"></span></p>
+                    <p class="text-gray-600">ช่าง: <span id="summary-technician"></span></p>
+                </div>
+
+                <!-- Price calculation -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700">ราคารวม</h3>
+                    <p class="text-2xl font-bold text-green-600">฿<span id="summary-price">0</span></p>
+                </div>
+
+                <!-- Contact form -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">ข้อมูลติดต่อ</h3>
+                    <div class="mb-4">
+                        <label for="phone" class="block text-gray-600 mb-1">เบอร์โทรศัพท์</label>
+                        <input type="tel" id="phone" class="w-full p-2 border border-gray-300 rounded-md" placeholder="เบอร์โทรศัพท์">
+                    </div>
+                    <div class="mb-4">
+                        <label for="notes" class="block text-gray-600 mb-1">หมายเหตุ</label>
+                        <textarea id="notes" class="w-full p-2 border border-gray-300 rounded-md h-24" placeholder="ระบุข้อความถึงช่าง"></textarea>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary mt-4" onclick="confirmBooking()">
+                ยืนยันการจอง
+            </button>
+            <button class="btn-secondary mt-2" onclick="showStep('step-technician')">
+                ย้อนกลับ
+            </button>
+        </div>
+
+        <!-- Step 6: Confirmation Screen -->
+        <div id="step-confirmation" class="step-content justify-center items-center text-center">
+            <div class="p-8">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-green-500 mx-auto mb-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <h2 class="text-3xl font-bold mb-4 text-gray-800">ยืนยันการจองสำเร็จ!</h2>
+                <p class="text-gray-600">ระบบได้ส่งการแจ้งเตือนไปยังช่างและคุณเรียบร้อยแล้ว</p>
+                <p class="text-sm text-gray-500 mt-2">ขอบคุณที่ใช้บริการ</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <svg class="animate-spin h-10 w-10 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </div>
+
+    <script>
+        // --- Data Mockup ---
+        // Mock data for services, technicians, prices, and unavailable slots
+        const services = [
+            { id: 'cut', name: 'ตัด', price: 200, subServices: [
+                { id: 'cut-men', name: 'ตัดผมชาย', price: 200 },
+                { id: 'cut-women', name: 'ตัดผมหญิง', price: 250 }
+            ]},
+            { id: 'wash', name: 'สระ', price: 100, subServices: [
+                { id: 'wash-hot', name: 'สระด้วยน้ำร้อน', price: 100 },
+                { id: 'wash-cold', name: 'สระด้วยน้ำเย็น', price: 80 }
+            ]},
+            { id: 'style', name: 'เซ็ต/ไดร์', price: 150, subServices: [
+                { id: 'dry-simple', name: 'ไดร์ตรง', price: 150 },
+                { id: 'dry-volume', name: 'ไดร์วอลลุ่ม', price: 200 }
+            ]}
+        ];
+
+        const technicians = [
+            { id: 'tech-a', name: 'ช่างเอ' },
+            { id: 'tech-b', name: 'ช่างบี' }
+        ];
+
+        // Mock unavailable time slots for demonstration
+        const unavailableSlots = {
+            '2025-08-10': ['10:00', '11:00'],
+            '2025-08-12': ['13:00']
+        };
+
+        // --- Global State Management ---
+        const state = {
+            currentStep: 'step-start',
+            selectedDate: null,
+            selectedTime: null,
+            selectedService: null,
+            selectedSubService: null,
+            selectedTechnician: null,
+            totalPrice: 0,
+            customerProfile: {
+                name: '',
+                userId: ''
+            },
+            contactInfo: {
+                phone: '',
+                notes: ''
+            },
+            backendUrl: 'YOUR_RENDER_URL_HERE/booking' // ** IMPORTANT: Replace with your actual Render URL **
+        };
+
+        // --- UI Logic and Event Handlers ---
+        
+        /**
+         * Switches the view to the specified step.
+         * @param {string} stepId The ID of the step to show.
+         */
+        function showStep(stepId) {
+            const steps = document.querySelectorAll('.step-content');
+            steps.forEach(step => step.classList.remove('active'));
+            document.getElementById(stepId).classList.add('active');
+            state.currentStep = stepId;
+            updateUI(stepId);
+        }
+
+        /**
+         * Updates the UI elements based on the current step and selected state.
+         * @param {string} stepId The ID of the current step.
+         */
+        function updateUI(stepId) {
+            switch(stepId) {
+                case 'step-date':
+                    generateCalendar();
+                    generateTimeSlots();
+                    break;
+                case 'step-service':
+                    generateMainServices();
+                    document.getElementById('service-next-btn').disabled = !state.selectedService;
+                    break;
+                case 'step-sub-service':
+                    generateSubServices();
+                    document.getElementById('sub-service-next-btn').disabled = !state.selectedSubService;
+                    break;
+                case 'step-technician':
+                    generateTechnicians();
+                    document.getElementById('technician-next-btn').disabled = !state.selectedTechnician;
+                    break;
+                case 'step-summary':
+                    updateSummary();
+                    break;
+            }
+        }
+
+        /**
+         * Generates and displays a calendar for the current month.
+         */
+        function generateCalendar() {
+            const calendarContainer = document.getElementById('calendar-container');
+            calendarContainer.innerHTML = ''; // Clear previous content
+
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            const monthName = new Date(currentYear, currentMonth).toLocaleString('th-TH', { month: 'long', year: 'numeric' });
+            
+            const header = document.createElement('h3');
+            header.className = 'text-xl font-bold mb-4 text-center';
+            header.textContent = monthName;
+            calendarContainer.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-7 gap-1 text-center text-sm';
+            
+            // Day of the week headers
+            const daysOfWeek = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+            daysOfWeek.forEach(day => {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'text-gray-500 font-semibold';
+                dayEl.textContent = day;
+                grid.appendChild(dayEl);
+            });
+
+            // Empty cells for days before the 1st
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                grid.appendChild(document.createElement('div'));
+            }
+
+            // Days of the month
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(currentYear, currentMonth, i);
+                const dateString = date.toISOString().slice(0, 10);
+                const dayEl = document.createElement('button');
+                dayEl.className = `p-2 rounded-lg transition-colors duration-200 focus:outline-none ${date.getDay() === 0 || date.getDay() === 6 ? 'text-red-500' : 'text-gray-800'} ${date < today ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-green-100'}`;
+                dayEl.textContent = i;
+                dayEl.disabled = date < today;
+                dayEl.onclick = () => selectDate(dateString, dayEl);
+
+                if (state.selectedDate === dateString) {
+                    dayEl.classList.add('bg-green-500', 'text-white');
+                }
+
+                grid.appendChild(dayEl);
+            }
+
+            calendarContainer.appendChild(grid);
+        }
+
+        /**
+         * Selects a date and updates the state and UI.
+         * @param {string} dateString The selected date in 'YYYY-MM-DD' format.
+         * @param {HTMLElement} element The clicked button element.
+         */
+        function selectDate(dateString, element) {
+            const prevSelected = document.querySelector('#calendar-container button.bg-green-500');
+            if (prevSelected) {
+                prevSelected.classList.remove('bg-green-500', 'text-white');
+                prevSelected.classList.add('bg-white', 'hover:bg-green-100');
+            }
+            element.classList.remove('bg-white', 'hover:bg-green-100');
+            element.classList.add('bg-green-500', 'text-white');
+
+            state.selectedDate = dateString;
+            state.selectedTime = null; // Reset time selection
+            generateTimeSlots();
+        }
+
+        /**
+         * Generates and displays time slots for the selected date.
+         */
+        function generateTimeSlots() {
+            const timeSlotsContainer = document.getElementById('time-slots');
+            timeSlotsContainer.innerHTML = '';
+            if (!state.selectedDate) return;
+
+            const slots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+            const unavailableForDate = unavailableSlots[state.selectedDate] || [];
+
+            slots.forEach(slot => {
+                const slotBtn = document.createElement('button');
+                const isUnavailable = unavailableForDate.includes(slot);
+                slotBtn.textContent = slot;
+                slotBtn.className = `p-2 rounded-lg font-medium transition-colors duration-200 ${isUnavailable ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white hover:bg-green-100 text-gray-800'}`;
+                slotBtn.disabled = isUnavailable;
+                if (!isUnavailable) {
+                    slotBtn.onclick = () => selectTime(slot, slotBtn);
+                }
+
+                if (state.selectedTime === slot) {
+                    slotBtn.classList.add('bg-green-500', 'text-white');
+                }
+
+                timeSlotsContainer.appendChild(slotBtn);
+            });
+        }
+
+        /**
+         * Selects a time slot and updates the state and UI.
+         * @param {string} time The selected time.
+         * @param {HTMLElement} element The clicked button element.
+         */
+        function selectTime(time, element) {
+            const prevSelected = document.querySelector('#time-slots button.bg-green-500');
+            if (prevSelected) {
+                prevSelected.classList.remove('bg-green-500', 'text-white');
+                prevSelected.classList.add('bg-white', 'hover:bg-green-100');
+            }
+            element.classList.remove('bg-white', 'hover:bg-green-100');
+            element.classList.add('bg-green-500', 'text-white');
+            state.selectedTime = time;
+        }
+
+        /**
+         * Generates and displays main service options.
+         */
+        function generateMainServices() {
+            const serviceContainer = document.getElementById('main-services');
+            serviceContainer.innerHTML = '';
+            services.forEach(service => {
+                const serviceBtn = document.createElement('button');
+                serviceBtn.textContent = `${service.name} (฿${service.price})`;
+                serviceBtn.className = `w-full p-4 text-left rounded-lg transition-colors duration-200 ${state.selectedService && state.selectedService.id.startsWith(service.id) ? 'bg-green-500 text-white' : 'bg-gray-100 hover:bg-green-100 text-gray-800'}`;
+                serviceBtn.onclick = () => selectMainService(service, serviceBtn);
+                serviceContainer.appendChild(serviceBtn);
+            });
+        }
+
+        /**
+         * Selects a main service and updates the state and UI.
+         * @param {object} service The selected service object.
+         * @param {HTMLElement} element The clicked button element.
+         */
+        function selectMainService(service, element) {
+            const prevSelected = document.querySelector('#main-services button.bg-green-500');
+            if (prevSelected) {
+                prevSelected.classList.remove('bg-green-500', 'text-white');
+                prevSelected.classList.add('bg-gray-100', 'hover:bg-green-100');
+            }
+            element.classList.remove('bg-gray-100', 'hover:bg-green-100');
+            element.classList.add('bg-green-500', 'text-white');
+            
+            state.selectedService = service;
+            state.selectedSubService = null;
+            document.getElementById('service-next-btn').disabled = false;
+        }
+
+        /**
+         * Generates and displays sub-service options based on the selected main service.
+         */
+        function generateSubServices() {
+            const subServiceContainer = document.getElementById('sub-services');
+            subServiceContainer.innerHTML = '';
+            if (!state.selectedService) return;
+
+            state.selectedService.subServices.forEach(subService => {
+                const subServiceBtn = document.createElement('button');
+                subServiceBtn.textContent = `${subService.name} (฿${subService.price})`;
+                subServiceBtn.className = `w-full p-4 text-left rounded-lg transition-colors duration-200 ${state.selectedSubService && state.selectedSubService.id === subService.id ? 'bg-green-500 text-white' : 'bg-gray-100 hover:bg-green-100 text-gray-800'}`;
+                subServiceBtn.onclick = () => selectSubService(subService, subServiceBtn);
+                subServiceContainer.appendChild(subServiceBtn);
+            });
+        }
+
+        /**
+         * Selects a sub-service and updates the state and UI.
+         * @param {object} subService The selected sub-service object.
+         * @param {HTMLElement} element The clicked button element.
+         */
+        function selectSubService(subService, element) {
+            const prevSelected = document.querySelector('#sub-services button.bg-green-500');
+            if (prevSelected) {
+                prevSelected.classList.remove('bg-green-500', 'text-white');
+                prevSelected.classList.add('bg-gray-100', 'hover:bg-green-100');
+            }
+            element.classList.remove('bg-gray-100', 'hover:bg-green-100');
+            element.classList.add('bg-green-500', 'text-white');
+            state.selectedSubService = subService;
+            document.getElementById('sub-service-next-btn').disabled = false;
+        }
+
+        /**
+         * Generates and displays technician options.
+         */
+        function generateTechnicians() {
+            const technicianContainer = document.getElementById('technicians');
+            technicianContainer.innerHTML = '';
+            technicians.forEach(technician => {
+                const technicianBtn = document.createElement('button');
+                technicianBtn.textContent = technician.name;
+                technicianBtn.className = `w-full p-4 text-left rounded-lg transition-colors duration-200 ${state.selectedTechnician && state.selectedTechnician.id === technician.id ? 'bg-green-500 text-white' : 'bg-gray-100 hover:bg-green-100 text-gray-800'}`;
+                technicianBtn.onclick = () => selectTechnician(technician, technicianBtn);
+                technicianContainer.appendChild(technicianBtn);
+            });
+        }
+
+        /**
+         * Selects a technician and updates the state and UI.
+         * @param {object} technician The selected technician object.
+         * @param {HTMLElement} element The clicked button element.
+         */
+        function selectTechnician(technician, element) {
+            const prevSelected = document.querySelector('#technicians button.bg-green-500');
+            if (prevSelected) {
+                prevSelected.classList.remove('bg-green-500', 'text-white');
+                prevSelected.classList.add('bg-gray-100', 'hover:bg-green-100');
+            }
+            element.classList.remove('bg-gray-100', 'hover:bg-green-100');
+            element.classList.add('bg-green-500', 'text-white');
+            state.selectedTechnician = technician;
+            document.getElementById('technician-next-btn').disabled = false;
+        }
+
+        /**
+         * Updates the summary screen with all selected booking details.
+         */
+        function updateSummary() {
+            if (state.selectedDate && state.selectedTime) {
+                const selectedDateTime = new Date(`${state.selectedDate}T${state.selectedTime}:00`);
+                const formattedDate = selectedDateTime.toLocaleDateString('th-TH', { dateStyle: 'long' });
+                document.getElementById('summary-datetime').textContent = `${formattedDate} เวลา ${state.selectedTime} น.`;
+            }
+
+            let serviceSummary = '';
+            let totalPrice = 0;
+            if (state.selectedService) {
+                serviceSummary += state.selectedService.name;
+                totalPrice += state.selectedService.price;
+            }
+            if (state.selectedSubService) {
+                serviceSummary += ` > ${state.selectedSubService.name}`;
+                totalPrice = state.selectedSubService.price; // Use sub-service price
+            }
+            document.getElementById('summary-service').textContent = serviceSummary;
+            document.getElementById('summary-technician').textContent = state.selectedTechnician ? state.selectedTechnician.name : 'ยังไม่ได้เลือก';
+            document.getElementById('summary-price').textContent = totalPrice.toLocaleString('th-TH');
+            state.totalPrice = totalPrice;
+
+            // This would be replaced with actual LINE profile data fetch
+            document.getElementById('customer-name').textContent = state.customerProfile.displayName;
+            document.getElementById('customer-id').textContent = state.customerProfile.userId;
+        }
+
+        /**
+         * Sends booking data to the backend server.
+         */
+        async function confirmBooking() {
+            // Show loading indicator
+            document.getElementById('loading-overlay').classList.remove('hidden');
+
+            state.contactInfo.phone = document.getElementById('phone').value;
+            state.contactInfo.notes = document.getElementById('notes').value;
+
+            // Prepare data for the backend
+            const bookingData = {
+                date: state.selectedDate,
+                time: state.selectedTime,
+                mainService: state.selectedService.name,
+                subService: state.selectedSubService.name,
+                technician: state.selectedTechnician.name,
+                price: state.totalPrice,
+                customerName: state.customerProfile.displayName,
+                lineUserId: state.customerProfile.userId,
+                phone: state.contactInfo.phone,
+                notes: state.contactInfo.notes,
+            };
+
+            try {
+                const response = await fetch(state.backendUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingData)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showStep('step-confirmation');
+                } else {
+                    alert('เกิดข้อผิดพลาดในการยืนยันการจอง');
+                }
+
+            } catch (error) {
+                console.error('Error during booking confirmation:', error);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            } finally {
+                // Hide loading indicator
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }
+        }
+
+        // Initialize LIFF and the first step when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if LIFF is already initialized
+            if (liff.isLoggedIn()) {
+                liff.getProfile().then(profile => {
+                    state.customerProfile.name = profile.displayName;
+                    state.customerProfile.userId = profile.userId;
+                    state.customerProfile.displayName = profile.displayName;
+                    showStep('step-start');
+                }).catch(err => {
+                    console.error('Error getting LIFF profile:', err);
+                    alert('ไม่สามารถดึงข้อมูลโปรไฟล์จาก LINE ได้');
+                    showStep('step-start');
+                });
+            } else {
+                liff.init({
+                    liffId: 'YOUR_LIFF_ID_HERE' // ** IMPORTANT: Replace with your actual LIFF ID **
+                }).then(() => {
+                    if (liff.isLoggedIn()) {
+                        liff.getProfile().then(profile => {
+                            state.customerProfile.name = profile.displayName;
+                            state.customerProfile.userId = profile.userId;
+                            state.customerProfile.displayName = profile.displayName;
+                            showStep('step-start');
+                        }).catch(err => {
+                            console.error('Error getting LIFF profile:', err);
+                            alert('ไม่สามารถดึงข้อมูลโปรไฟล์จาก LINE ได้');
+                            showStep('step-start');
+                        });
+                    } else {
+                        liff.login();
+                    }
+                }).catch(err => {
+                    console.error('LIFF initialization failed:', err);
+                    alert('LIFF initialization failed. Please try again.');
+                });
+            }
+        });
+
+    </script>
+</body>
+</html>
