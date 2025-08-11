@@ -226,7 +226,6 @@
 
     <script>
         // --- Data Mockup ---
-        // Mock data for services, technicians, prices, and unavailable slots
         const services = [
             { id: 'cut', name: 'ตัด', price: 200, subServices: [
                 { id: 'cut-men', name: 'ตัดผมชาย', price: 200 },
@@ -263,7 +262,7 @@
             selectedTechnician: null,
             totalPrice: 0,
             customerProfile: {
-                name: '',
+                displayName: '',
                 userId: ''
             },
             contactInfo: {
@@ -559,10 +558,7 @@
             if (state.selectedSubService) {
                 serviceSummary += ` > ${state.selectedSubService.name}`;
                 // Fix: add sub-service price instead of replacing
-                totalPrice = state.selectedSubService.price;
-            } else {
-                // If no sub-service is selected, use the main service price
-                totalPrice = state.selectedService ? state.selectedService.price : 0;
+                totalPrice += state.selectedSubService.price;
             }
 
             document.getElementById('summary-service').textContent = serviceSummary;
@@ -599,6 +595,12 @@
          * Sends booking data to the backend server.
          */
         async function confirmBooking() {
+            // Check for required fields before sending
+            if (!state.selectedDate || !state.selectedTime || !state.selectedService || !state.selectedSubService || !state.selectedTechnician) {
+                showModal('ข้อมูลไม่ครบถ้วน', 'กรุณาเลือกวัน, เวลา, บริการ และช่างให้ครบถ้วนก่อนยืนยัน');
+                return;
+            }
+            
             // Show loading indicator
             document.getElementById('loading-overlay').classList.remove('hidden');
 
@@ -651,41 +653,30 @@
 
         // Initialize LIFF and the first step when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            if (liff.isLoggedIn()) {
-                liff.getProfile().then(profile => {
-                    state.customerProfile.name = profile.displayName;
-                    state.customerProfile.userId = profile.userId;
-                    state.customerProfile.displayName = profile.displayName;
-                    showStep('step-start');
-                }).catch(err => {
-                    console.error('Error getting LIFF profile:', err);
-                    showModal('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลโปรไฟล์จาก LINE ได้');
-                    showStep('step-start');
-                });
-            } else {
-                liff.init({
-                    // ** IMPORTANT: Replace with your actual LIFF ID **
-                    liffId: '2007895406-VWgOqgvW'
-                }).then(() => {
-                    if (liff.isLoggedIn()) {
-                        liff.getProfile().then(profile => {
-                            state.customerProfile.name = profile.displayName;
-                            state.customerProfile.userId = profile.userId;
-                            state.customerProfile.displayName = profile.displayName;
-                            showStep('step-start');
-                        }).catch(err => {
-                            console.error('Error getting LIFF profile:', err);
-                            showModal('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลโปรไฟล์จาก LINE ได้');
-                            showStep('step-start');
-                        });
-                    } else {
-                        liff.login();
-                    }
-                }).catch(err => {
-                    console.error('LIFF initialization failed:', err);
-                    showModal('เกิดข้อผิดพลาด', 'LIFF initialization failed. Please try again.');
-                });
-            }
+            // Initialize LIFF first, then check login status
+            liff.init({
+                // ** IMPORTANT: Replace with your actual LIFF ID **
+                liffId: '2007895406-VWgOqgvW'
+            }).then(() => {
+                if (liff.isLoggedIn()) {
+                    liff.getProfile().then(profile => {
+                        state.customerProfile.displayName = profile.displayName;
+                        state.customerProfile.userId = profile.userId;
+                        document.getElementById('customer-name').textContent = state.customerProfile.displayName;
+                        document.getElementById('customer-id').textContent = state.customerProfile.userId;
+                        showStep('step-start');
+                    }).catch(err => {
+                        console.error('Error getting LIFF profile:', err);
+                        showModal('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลโปรไฟล์จาก LINE ได้');
+                        showStep('step-start');
+                    });
+                } else {
+                    liff.login();
+                }
+            }).catch(err => {
+                console.error('LIFF initialization failed:', err);
+                showModal('เกิดข้อผิดพลาด', 'LIFF initialization failed. Please try again.');
+            });
         });
     </script>
 </body>
