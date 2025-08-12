@@ -26,329 +26,350 @@
 
     <!-- โค้ด React และ JavaScript ทั้งหมดจะถูกเขียนไว้ในนี้ -->
     <script type="text/babel">
-        // Wait for the window to load before running the React code.
-        // This ensures the LIFF SDK script has finished loading and the 'liff' object is available.
-        window.onload = function() {
-            // กำหนดค่า config ที่สำคัญ
-            const LIFF_ID = '2007895406-VWgOqgvW';
-            const BACKEND_API_URL = 'https://salon-rbms.onrender.com';
+        // กำหนดค่า config ที่สำคัญ
+        const LIFF_ID = '2007895406-VWgOqgvW';
+        const BACKEND_API_URL = 'https://salon-rbms.onrender.com';
 
-            // --- 1. Main App Component ---
-            const App = () => {
-                // State to manage booking data
-                const [bookingData, setBookingData] = React.useState({
-                    customerName: '',
-                    phoneNumber: '',
-                    date: '',
-                    time: '',
-                    mainService: '',
-                    subService: '',
-                    technician: '',
-                    notes: '',
-                    price: 0,
-                });
+        // --- 1. Main App Component ---
+        // คอมโพเนนต์หลักที่แสดงฟอร์มการจอง
+        const App = () => {
+            const [bookingData, setBookingData] = React.useState({
+                customerName: '',
+                phoneNumber: '',
+                date: '',
+                time: '',
+                mainService: '',
+                subService: '',
+                technician: '',
+                notes: '',
+                price: 0,
+            });
 
-                // State for LIFF and UI messages
-                const [liffProfile, setLiffProfile] = React.useState(null);
-                const [isLiffLoading, setIsLiffLoading] = React.useState(true);
-                const [message, setMessage] = React.useState('');
-                const [loading, setLoading] = React.useState(false);
-                
-                // State for fetched data
-                const [bookedSlots, setBookedSlots] = React.useState([]);
-                const [technicians, setTechnicians] = React.useState([]);
-                const [services, setServices] = React.useState({ mainServices: [], subServices: [], prices: {} });
-                const [availableTimes, setAvailableTimes] = React.useState([]);
+            const [liffProfile, setLiffProfile] = React.useState(null);
+            const [isAppLoading, setIsAppLoading] = React.useState(true);
+            const [message, setMessage] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+            
+            const [technicians, setTechnicians] = React.useState([]);
+            const [services, setServices] = React.useState({ mainServices: [], subServices: [], prices: {} });
+            const [availableTimes, setAvailableTimes] = React.useState([]);
 
-                // Use useEffect to initialize LIFF and fetch data
-                React.useEffect(() => {
-                    const initializeLiff = async () => {
-                        try {
-                            // Await liff.init to ensure it's fully loaded before any calls
-                            await liff.init({ liffId: LIFF_ID });
-                            
-                            if (liff.isLoggedIn()) {
-                                const profile = await liff.getProfile();
-                                setLiffProfile(profile);
-                                setBookingData(prev => ({ ...prev, customerName: profile.displayName }));
-                            } else {
-                                // For this example, we will just show a message.
-                                console.log("Not logged in to LIFF.");
-                            }
-                        } catch (err) {
-                            console.error('LIFF initialization failed', err);
-                        } finally {
-                            setIsLiffLoading(false);
-                        }
-                    };
-
-                    const fetchData = async () => {
-                        try {
-                            const [techsResponse, servicesResponse] = await Promise.all([
-                                axios.get(`${BACKEND_API_URL}/api/technicians`),
-                                axios.get(`${BACKEND_API_URL}/api/services`)
-                            ]);
-                            setTechnicians(techsResponse.data);
-                            setServices(servicesResponse.data);
-                        } catch (err) {
-                            console.error('Error fetching initial data:', err);
-                            setMessage('❌ ไม่สามารถดึงข้อมูลช่างและบริการได้');
-                        }
-                    };
-                    
-                    // Initialize LIFF and fetch data concurrently
-                    initializeLiff();
-                    fetchData();
-                }, []);
-
-                // Update price when service selections change
-                React.useEffect(() => {
-                    const { mainService, subService } = bookingData;
-                    const mainServiceKey = `${mainService}-`;
-                    const subServiceKey = `${mainService}-${subService}`;
-
-                    const calculatedPrice = services.prices[subServiceKey] || services.prices[mainServiceKey] || 0;
-                    setBookingData(prev => ({ ...prev, price: calculatedPrice }));
-                }, [bookingData.mainService, bookingData.subService, services]);
-
-                // Fetch availability when the date is selected
-                React.useEffect(() => {
-                    if (bookingData.date) {
-                        checkAvailability(bookingData.date);
-                    }
-                }, [bookingData.date]);
-
-                // Function to check available time slots
-                const checkAvailability = async (date) => {
+            // Use a single useEffect to fetch app data after LIFF is ready
+            React.useEffect(() => {
+                const fetchAppData = async () => {
                     try {
-                        const response = await axios.get(`${BACKEND_API_URL}/api/availability`, { params: { date } });
-                        setBookedSlots(response.data);
-                        const allSlots = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-                        const available = allSlots.filter(slot => !response.data.includes(slot));
-                        setAvailableTimes(available);
-                        setBookingData(prev => ({ ...prev, time: '' })); // Clear selected time when date changes
-                    } catch (error) {
-                        console.error('Error checking availability:', error);
-                        setMessage('ไม่สามารถตรวจสอบช่วงเวลาว่างได้ กรุณาลองใหม่อีกครั้ง');
+                        // liff is guaranteed to be initialized here.
+                        if (liff.isLoggedIn()) {
+                            const profile = await liff.getProfile();
+                            setLiffProfile(profile);
+                            setBookingData(prev => ({ ...prev, customerName: profile.displayName }));
+                        }
+
+                        const [techsResponse, servicesResponse] = await Promise.all([
+                            axios.get(`${BACKEND_API_URL}/api/technicians`),
+                            axios.get(`${BACKEND_API_URL}/api/services`)
+                        ]);
+                        setTechnicians(techsResponse.data);
+                        setServices(servicesResponse.data);
+                    } catch (err) {
+                        console.error('App data fetching failed:', err);
+                        setMessage(`❌ เกิดข้อผิดพลาดในการโหลดข้อมูลแอปพลิเคชัน: ${err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ'}`);
+                    } finally {
+                        setIsAppLoading(false);
                     }
                 };
+                fetchAppData();
+            }, []);
 
-                // Handle form submission
-                const handleSubmit = async (e) => {
-                    e.preventDefault();
-                    setLoading(true);
-                    setMessage('');
+            // Update price when service selections change
+            React.useEffect(() => {
+                const { mainService, subService } = bookingData;
+                const mainServiceKey = `${mainService}-`;
+                const subServiceKey = `${mainService}-${subService}`;
 
-                    // Prepare data for submission, including LIFF User ID
-                    const submissionData = {
-                        ...bookingData,
-                        timestamp: new Date().toLocaleString(),
-                        lineUserId: liffProfile?.userId,
-                    };
+                const calculatedPrice = services.prices[subServiceKey] || services.prices[mainServiceKey] || 0;
+                setBookingData(prev => ({ ...prev, price: calculatedPrice }));
+            }, [bookingData.mainService, bookingData.subService, services]);
 
-                    try {
-                        const response = await axios.post(`${BACKEND_API_URL}/api/booking`, submissionData);
-                        if (response.data.success) {
-                            setMessage('✅ การจองของคุณสำเร็จแล้ว! จะมีข้อความยืนยันจาก LINE Bot');
+            // Fetch availability when the date is selected
+            React.useEffect(() => {
+                if (bookingData.date) {
+                    checkAvailability(bookingData.date);
+                }
+            }, [bookingData.date]);
+
+            // Function to check available time slots
+            const checkAvailability = async (date) => {
+                try {
+                    const response = await axios.get(`${BACKEND_API_URL}/api/availability`, { params: { date } });
+                    const bookedSlots = response.data;
+                    const allSlots = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+                    const available = allSlots.filter(slot => !bookedSlots.includes(slot));
+                    setAvailableTimes(available);
+                    setBookingData(prev => ({ ...prev, time: '' }));
+                } catch (error) {
+                    console.error('Error checking availability:', error);
+                    setMessage('ไม่สามารถตรวจสอบช่วงเวลาว่างได้ กรุณาลองใหม่อีกครั้ง');
+                }
+            };
+
+            // Handle form submission
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setMessage('');
+
+                const submissionData = {
+                    ...bookingData,
+                    timestamp: new Date().toLocaleString(),
+                    lineUserId: liffProfile?.userId,
+                };
+
+                try {
+                    const response = await axios.post(`${BACKEND_API_URL}/api/booking`, submissionData);
+                    if (response.data.success) {
+                        setMessage('✅ การจองของคุณสำเร็จแล้ว! จะมีข้อความยืนยันจาก LINE Bot');
+                        if (typeof liff !== 'undefined' && liff.isInClient()) {
                             liff.closeWindow();
                         }
-                    } catch (error) {
-                        console.error('Error submitting booking:', error);
-                        if (error.response) {
-                            setMessage(`❌ เกิดข้อผิดพลาด: ${error.response.data.message || 'ไม่สามารถทำการจองได้'}`);
-                        } else {
-                            setMessage('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
-                        }
-                    } finally {
-                        setLoading(false);
                     }
-                };
-
-                // Handle form input changes
-                const handleChange = (e) => {
-                    const { name, value } = e.target;
-                    setBookingData(prev => ({ ...prev, [name]: value }));
-                };
-
-                // Render loading state while LIFF is initializing
-                if (isLiffLoading) {
-                    return <div className="p-4 text-center text-gray-600 bg-gray-100 rounded-lg shadow-md">
-                        <p className="font-bold">กำลังโหลด LINE LIFF...</p>
-                    </div>
+                } catch (error) {
+                    console.error('Error submitting booking:', error);
+                    if (error.response) {
+                        setMessage(`❌ เกิดข้อผิดพลาด: ${error.response.data.message || 'ไม่สามารถทำการจองได้'}`);
+                    } else {
+                        setMessage('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+                    }
+                } finally {
+                    setLoading(false);
                 }
-                
-                // Render the booking form
+            };
+
+            // Handle form input changes
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setBookingData(prev => ({ ...prev, [name]: value }));
+            };
+
+            // Render loading state while the app is initializing
+            if (isAppLoading) {
                 return (
                     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-['Inter']">
-                        <div className="bg-white p-6 rounded-3xl shadow-lg w-full max-w-lg">
-                            <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">จองคิวทำผม</h1>
-
-                            {/* Display LIFF profile if available */}
-                            {liffProfile && (
-                                <div className="flex items-center space-x-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                    <img src={liffProfile.pictureUrl} alt="Profile" className="w-12 h-12 rounded-full" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">คุณกำลังจองในนาม:</p>
-                                        <p className="font-semibold text-lg text-gray-700">{liffProfile.displayName}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {/* Customer Name */}
-                                <div>
-                                    <label htmlFor="customerName" className="block text-gray-700 font-medium mb-1">ชื่อลูกค้า</label>
-                                    <input
-                                        type="text"
-                                        id="customerName"
-                                        name="customerName"
-                                        value={bookingData.customerName}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    />
-                                </div>
-                                {/* Phone Number */}
-                                <div>
-                                    <label htmlFor="phoneNumber" className="block text-gray-700 font-medium mb-1">เบอร์โทรศัพท์</label>
-                                    <input
-                                        type="tel"
-                                        id="phoneNumber"
-                                        name="phoneNumber"
-                                        value={bookingData.phoneNumber}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    />
-                                </div>
-                                {/* Booking Date */}
-                                <div>
-                                    <label htmlFor="date" className="block text-gray-700 font-medium mb-1">วันที่</label>
-                                    <input
-                                        type="date"
-                                        id="date"
-                                        name="date"
-                                        value={bookingData.date}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    />
-                                </div>
-                                {/* Booking Time */}
-                                <div>
-                                    <label htmlFor="time" className="block text-gray-700 font-medium mb-1">เวลาที่ต้องการ</label>
-                                    <select
-                                        id="time"
-                                        name="time"
-                                        value={bookingData.time}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                        disabled={!bookingData.date}
-                                    >
-                                        <option value="">{bookingData.date ? 'โปรดเลือกเวลา' : 'โปรดเลือกวันที่ก่อน'}</option>
-                                        {availableTimes.map(slot => (
-                                            <option key={slot} value={slot}>
-                                                {slot}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                {/* Main Service */}
-                                <div>
-                                    <label htmlFor="mainService" className="block text-gray-700 font-medium mb-1">บริการหลัก</label>
-                                    <select
-                                        id="mainService"
-                                        name="mainService"
-                                        value={bookingData.mainService}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    >
-                                        <option value="">โปรดเลือกบริการหลัก</option>
-                                        {services.mainServices.map(service => (
-                                            <option key={service} value={service}>{service}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                {/* Sub Service */}
-                                <div>
-                                    <label htmlFor="subService" className="block text-gray-700 font-medium mb-1">บริการเสริม</label>
-                                    <select
-                                        id="subService"
-                                        name="subService"
-                                        value={bookingData.subService}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    >
-                                        <option value="">(ไม่มี)</option>
-                                        {services.subServices.map(service => (
-                                            <option key={service} value={service}>{service}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                {/* Technician */}
-                                <div>
-                                    <label htmlFor="technician" className="block text-gray-700 font-medium mb-1">ช่างที่ต้องการ</label>
-                                    <select
-                                        id="technician"
-                                        name="technician"
-                                        value={bookingData.technician}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    >
-                                        <option value="">โปรดเลือกช่าง</option>
-                                        {technicians.map(tech => (
-                                            <option key={tech} value={tech}>{tech}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                {/* Price Display */}
-                                {bookingData.price > 0 && (
-                                    <div className="text-center p-4 bg-green-50 text-green-700 font-bold rounded-lg border border-green-200">
-                                        ราคาประมาณการ: {bookingData.price} บาท
-                                    </div>
-                                )}
-                                {/* Notes */}
-                                <div>
-                                    <label htmlFor="notes" className="block text-gray-700 font-medium mb-1">หมายเหตุ</label>
-                                    <textarea
-                                        id="notes"
-                                        name="notes"
-                                        value={bookingData.notes}
-                                        onChange={handleChange}
-                                        rows="3"
-                                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                                    />
-                                </div>
-                                {/* Submit Button */}
-                                <button
-                                    type="submit"
-                                    className={`w-full px-4 py-3 rounded-lg text-white font-bold transition-colors duration-200 ${
-                                        loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                    }`}
-                                    disabled={loading}
-                                >
-                                    {loading ? 'กำลังดำเนินการ...' : 'ยืนยันการจอง'}
-                                </button>
-                            </form>
-
-                            {/* Message Box */}
+                        <div className="p-8 text-center text-gray-600 bg-white rounded-lg shadow-md">
+                            <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="font-bold text-lg">กำลังโหลดข้อมูลแอปพลิเคชัน...</p>
                             {message && (
-                                <div className="mt-4 p-4 rounded-lg text-center font-semibold text-gray-700 bg-blue-100 border border-blue-200">
+                                <div className="mt-4 p-3 rounded-lg text-sm font-semibold text-red-700 bg-red-100 border border-red-200">
                                     {message}
                                 </div>
                             )}
                         </div>
                     </div>
                 );
+            }
+            
+            // Render the booking form
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-['Inter']">
+                    <div className="bg-white p-6 rounded-3xl shadow-lg w-full max-w-lg">
+                        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">จองคิวทำผม</h1>
+
+                        {liffProfile && (
+                            <div className="flex items-center space-x-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <img src={liffProfile.pictureUrl} alt="Profile" className="w-12 h-12 rounded-full" />
+                                <div>
+                                    <p className="text-sm text-gray-500">คุณกำลังจองในนาม:</p>
+                                    <p className="font-semibold text-lg text-gray-700">{liffProfile.displayName}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label htmlFor="customerName" className="block text-gray-700 font-medium mb-1">ชื่อลูกค้า</label>
+                                <input
+                                    type="text"
+                                    id="customerName"
+                                    name="customerName"
+                                    value={bookingData.customerName}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="phoneNumber" className="block text-gray-700 font-medium mb-1">เบอร์โทรศัพท์</label>
+                                <input
+                                    type="tel"
+                                    id="phoneNumber"
+                                    name="phoneNumber"
+                                    value={bookingData.phoneNumber}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="date" className="block text-gray-700 font-medium mb-1">วันที่</label>
+                                <input
+                                    type="date"
+                                    id="date"
+                                    name="date"
+                                    value={bookingData.date}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="time" className="block text-gray-700 font-medium mb-1">เวลาที่ต้องการ</label>
+                                <select
+                                    id="time"
+                                    name="time"
+                                    value={bookingData.time}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                    disabled={!bookingData.date}
+                                >
+                                    <option value="">{bookingData.date ? 'โปรดเลือกเวลา' : 'โปรดเลือกวันที่ก่อน'}</option>
+                                    {availableTimes.map(slot => (
+                                        <option key={slot} value={slot}>
+                                            {slot}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="mainService" className="block text-gray-700 font-medium mb-1">บริการหลัก</label>
+                                <select
+                                    id="mainService"
+                                    name="mainService"
+                                    value={bookingData.mainService}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                >
+                                    <option value="">โปรดเลือกบริการหลัก</option>
+                                    {services.mainServices.map(service => (
+                                        <option key={service} value={service}>{service}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="subService" className="block text-gray-700 font-medium mb-1">บริการเสริม</label>
+                                <select
+                                    id="subService"
+                                    name="subService"
+                                    value={bookingData.subService}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                >
+                                    <option value="">(ไม่มี)</option>
+                                    {services.subServices.map(service => (
+                                        <option key={service} value={service}>{service}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="technician" className="block text-gray-700 font-medium mb-1">ช่างที่ต้องการ</label>
+                                <select
+                                    id="technician"
+                                    name="technician"
+                                    value={bookingData.technician}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                >
+                                    <option value="">โปรดเลือกช่าง</option>
+                                    {technicians.map(tech => (
+                                        <option key={tech} value={tech}>{tech}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {bookingData.price > 0 && (
+                                <div className="text-center p-4 bg-green-50 text-green-700 font-bold rounded-lg border border-green-200">
+                                    ราคาประมาณการ: {bookingData.price} บาท
+                                </div>
+                            )}
+                            <div>
+                                <label htmlFor="notes" className="block text-gray-700 font-medium mb-1">หมายเหตุ</label>
+                                <textarea
+                                    id="notes"
+                                    name="notes"
+                                    value={bookingData.notes}
+                                    onChange={handleChange}
+                                    rows="3"
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className={`w-full px-4 py-3 rounded-lg text-white font-bold transition-colors duration-200 ${
+                                    loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                }`}
+                                disabled={loading}
+                            >
+                                {loading ? 'กำลังดำเนินการ...' : 'ยืนยันการจอง'}
+                            </button>
+                        </form>
+
+                        {message && (
+                            <div className="mt-4 p-4 rounded-lg text-center font-semibold text-gray-700 bg-blue-100 border border-blue-200">
+                                {message}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 2. Entry point of the application ---
+        // Wait for the window to load before running the app.
+        window.onload = function() {
+            const rootElement = document.getElementById('root');
+
+            // Function to handle the start of the application.
+            const startApp = () => {
+                const domNode = document.getElementById('root');
+                const root = ReactDOM.createRoot(domNode);
+                root.render(<App />);
             };
 
-            // --- 2. Render the App Component ---
-            const domNode = document.getElementById('root');
-            const root = ReactDOM.createRoot(domNode);
-            root.render(<App />);
+            // First, check if the liff object exists. This ensures the script loaded.
+            if (typeof liff === 'undefined') {
+                console.error('Initialization failed: LIFF SDK is not available. Check network or script tag.');
+                rootElement.innerHTML = `
+                    <div class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+                        <div class="p-8 text-center text-gray-600 bg-white rounded-lg shadow-md">
+                            <p class="font-bold text-lg text-red-500">❌ LIFF SDK ไม่พร้อมใช้งาน</p>
+                            <p class="mt-2">โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณและลองใหม่อีกครั้ง</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // If the liff object exists, proceed with LIFF initialization.
+            liff.init({ liffId: LIFF_ID })
+                .then(() => {
+                    startApp();
+                })
+                .catch((err) => {
+                    console.error('LIFF initialization failed:', err);
+                    rootElement.innerHTML = `
+                        <div class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+                            <div class="p-8 text-center text-gray-600 bg-white rounded-lg shadow-md">
+                                <p class="font-bold text-lg text-red-500">❌ การเชื่อมต่อ LIFF ล้มเหลว</p>
+                                <p class="mt-2">โปรดลองเปิดในแอปพลิเคชัน LINE อีกครั้ง</p>
+                                <p class="mt-2 text-sm text-gray-500">รายละเอียด: ${err.message}</p>
+                            </div>
+                        </div>
+                    `;
+                });
         };
     </script>
 </body>
