@@ -12,8 +12,8 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- Axios สำหรับเรียก API -->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <!-- react-liff library -->
-    <script src="https://unpkg.com/react-liff/dist/index.umd.js"></script>
+    <!-- Official LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/2.22.3/sdk.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -30,9 +30,6 @@
         const LIFF_ID = '2007895406-VWgOqgvW';
         const BACKEND_API_URL = 'https://salon-rbms.onrender.com';
 
-        // Destructure LIFF hooks from the global object
-        const { useLiff, LiffProvider } = window.ReactLiff;
-
         // --- 1. Main App Component ---
         const App = () => {
             // State to manage booking data
@@ -48,36 +45,43 @@
                 price: 0,
             });
 
-            // State for UI messages and loading status
+            // State for LIFF and UI messages
+            const [liffProfile, setLiffProfile] = React.useState(null);
+            const [isLiffLoading, setIsLiffLoading] = React.useState(true);
+            const [liffError, setLiffError] = React.useState(null);
             const [message, setMessage] = React.useState('');
             const [loading, setLoading] = React.useState(false);
+            
+            // State for fetched data
             const [bookedSlots, setBookedSlots] = React.useState([]);
-            const [technicians, setTechnicians] = React.useState([]); // Will be fetched from API
-            const [services, setServices] = React.useState({ mainServices: [], subServices: [], prices: {} }); // Will be fetched from API
+            const [technicians, setTechnicians] = React.useState([]);
+            const [services, setServices] = React.useState({ mainServices: [], subServices: [], prices: {} });
             const [availableTimes, setAvailableTimes] = React.useState([]);
 
-            // Get LIFF profile information
-            const { liff, isLoggedIn, error } = useLiff();
-            const [liffProfile, setLiffProfile] = React.useState(null);
-
-            // Fetch LIFF profile on component load
+            // Use useEffect to initialize LIFF and fetch data
             React.useEffect(() => {
-                const getLiffProfile = async () => {
-                    if (isLoggedIn) {
-                        try {
+                const initializeLiff = async () => {
+                    try {
+                        // Await liff.init to ensure it's fully loaded before any calls
+                        await liff.init({ liffId: LIFF_ID });
+                        
+                        if (liff.isLoggedIn()) {
                             const profile = await liff.getProfile();
                             setLiffProfile(profile);
                             setBookingData(prev => ({ ...prev, customerName: profile.displayName }));
-                        } catch (err) {
-                            console.error('Error getting LIFF profile:', err);
+                        } else {
+                            // Optionally, redirect to the login page if not logged in
+                            // liff.login();
+                            // For this example, we will just show a message.
                         }
+                    } catch (err) {
+                        console.error('LIFF initialization failed', err);
+                        setLiffError(err.message);
+                    } finally {
+                        setIsLiffLoading(false);
                     }
                 };
-                getLiffProfile();
-            }, [liff, isLoggedIn]);
 
-            // NEW: Fetch technicians and services data on initial load
-            React.useEffect(() => {
                 const fetchData = async () => {
                     try {
                         const [techsResponse, servicesResponse] = await Promise.all([
@@ -91,6 +95,9 @@
                         setMessage('❌ ไม่สามารถดึงข้อมูลช่างและบริการได้');
                     }
                 };
+                
+                // Initialize LIFF and fetch data concurrently
+                initializeLiff();
                 fetchData();
             }, []);
 
@@ -100,7 +107,6 @@
                 const mainServiceKey = `${mainService}-`;
                 const subServiceKey = `${mainService}-${subService}`;
 
-                // Get the price based on main and sub services
                 const calculatedPrice = services.prices[subServiceKey] || services.prices[mainServiceKey] || 0;
                 setBookingData(prev => ({ ...prev, price: calculatedPrice }));
             }, [bookingData.mainService, bookingData.subService, services]);
@@ -144,7 +150,6 @@
                     const response = await axios.post(`${BACKEND_API_URL}/api/booking`, submissionData);
                     if (response.data.success) {
                         setMessage('✅ การจองของคุณสำเร็จแล้ว! จะมีข้อความยืนยันจาก LINE Bot');
-                        // Optional: Close LIFF window or reset form
                         liff.closeWindow();
                     }
                 } catch (error) {
@@ -159,8 +164,21 @@
                 }
             };
 
+            // Handle form input changes
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setBookingData(prev => ({ ...prev, [name]: value }));
+            };
+
             // Render loading state while LIFF is initializing
-            if (error || (liff && !isLoggedIn)) {
+            if (isLiffLoading) {
+                return <div className="p-4 text-center text-gray-600 bg-gray-100 rounded-lg shadow-md">
+                    <p className="font-bold">กำลังโหลด LINE LIFF...</p>
+                </div>
+            }
+            
+            // Render an error message if LIFF fails to initialize
+            if (liffError) {
                 return <div className="p-4 text-center text-red-600 bg-red-100 rounded-lg shadow-md">
                     <p className="font-bold">เกิดข้อผิดพลาดในการเข้าสู่ระบบ LINE LIFF</p>
                     <p>โปรดลองเปิดในแอปพลิเคชัน LINE อีกครั้ง</p>
@@ -336,18 +354,9 @@
         };
 
         // --- 2. Render the App Component ---
-        const AppWithLiff = () => {
-            const liffId = LIFF_ID;
-            return (
-                <LiffProvider liffId={liffId}>
-                    <App />
-                </LiffProvider>
-            );
-        };
-
         const domNode = document.getElementById('root');
         const root = ReactDOM.createRoot(domNode);
-        root.render(<AppWithLiff />);
+        root.render(<App />);
     </script>
 </body>
 </html>
