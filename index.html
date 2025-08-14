@@ -1,1119 +1,515 @@
 <!DOCTYPE html>
-
-<html lang="en">
-
+<html lang="th">
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Hair Salon Booking</title>
-
-    <style>
-
-        /* Basic Styling */
-
-        body {
-
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-
-            background-color: #f4f4f9;
-
-            margin: 0;
-
-            padding: 20px;
-
-            color: #333;
-
-        }
-
-        .container {
-
-            max-width: 600px;
-
-            margin: 0 auto;
-
-            background: #fff;
-
-            padding: 25px;
-
-            border-radius: 12px;
-
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-
-        }
-
-        h1, h2 {
-
-            color: #5D4037;
-
-            text-align: center;
-
-        }
-
-
-
-        /* Form Elements */
-
-        .form-group {
-
-            margin-bottom: 20px;
-
-        }
-
-        label {
-
-            display: block;
-
-            margin-bottom: 8px;
-
-            font-weight: 600;
-
-            color: #444;
-
-        }
-
-        input, select {
-
-            width: 100%;
-
-            padding: 12px;
-
-            border: 1px solid #ddd;
-
-            border-radius: 8px;
-
-            box-sizing: border-box;
-
-            font-size: 16px;
-
-        }
-
-        input:focus, select:focus {
-
-            outline: none;
-
-            border-color: #A1887F;
-
-        }
-
-
-
-        /* Calendar */
-
-        #calendar-container {
-
-            display: grid;
-
-            grid-template-columns: repeat(7, 1fr);
-
-            gap: 5px;
-
-            margin-top: 10px;
-
-        }
-
-        .calendar-day {
-
-            padding: 10px;
-
-            text-align: center;
-
-            border: 1px solid #eee;
-
-            border-radius: 8px;
-
-            cursor: pointer;
-
-            transition: background-color 0.3s, color 0.3s;
-
-        }
-
-        .calendar-day.header {
-
-            font-weight: bold;
-
-            background-color: #EFEBE9;
-
-        }
-
-        .calendar-day.available:hover {
-
-            background-color: #D7CCC8;
-
-        }
-
-        .calendar-day.unavailable {
-
-            background-color: #fde0e0;
-
-            color: #c9ada7;
-
-            text-decoration: line-through;
-
-            cursor: not-allowed;
-
-        }
-
-        .calendar-day.selected {
-
-            background-color: #8D6E63;
-
-            color: white;
-
-            font-weight: bold;
-
-        }
-
-
-
-        /* Time Slots */
-
-        #time-slots {
-
-            display: grid;
-
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-
-            gap: 10px;
-
-            margin-top: 10px;
-
-        }
-
-        .time-slot {
-
-            padding: 12px;
-
-            text-align: center;
-
-            border: 1px solid #ddd;
-
-            border-radius: 8px;
-
-            cursor: pointer;
-
-        }
-
-        .time-slot.booked {
-
-            background-color: #EF9A9A;
-
-            color: #fff;
-
-            cursor: not-allowed;
-
-            text-decoration: line-through;
-
-        }
-
-        .time-slot.selected {
-
-            background-color: #8D6E63;
-
-            color: #fff;
-
-        }
-
-
-
-        /* Summary */
-
-        #booking-summary {
-
-            background-color: #F5F5F5;
-
-            padding: 20px;
-
-            border-radius: 8px;
-
-            margin-top: 20px;
-
-        }
-
-        #booking-summary h2 {
-
-            margin-top: 0;
-
-            color: #5D4037;
-
-        }
-
-        #total-price {
-
-            font-weight: bold;
-
-            font-size: 1.2em;
-
-            color: #4E342E;
-
-            text-align: right;
-
-        }
-
-
-
-        /* Button */
-
-        button {
-
-            width: 100%;
-
-            padding: 15px;
-
-            background-color: #8D6E63;
-
-            color: white;
-
-            border: none;
-
-            border-radius: 8px;
-
-            font-size: 18px;
-
-            font-weight: bold;
-
-            cursor: pointer;
-
-            transition: background-color 0.3s;
-
-        }
-
-        button:hover {
-
-            background-color: #6D4C41;
-
-        }
-
-        button:disabled {
-
-            background-color: #ccc;
-
-            cursor: not-allowed;
-
-        }
-
-
-
-        /* Alerts */
-
-        .alert {
-
-            padding: 15px;
-
-            margin-bottom: 20px;
-
-            border-radius: 8px;
-
-            text-align: center;
-
-            font-weight: bold;
-
-        }
-
-        .alert-success {
-
-            background-color: #d4edda;
-
-            color: #155724;
-
-        }
-
-        .alert-danger {
-
-            background-color: #f8d7da;
-
-            color: #721c24;
-
-        }
-
-    </style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จองคิวทำผม</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F4F1;
+        }
+        .container {
+            background-color: #ffffff;
+            border: 1px solid #E5E7EB;
+        }
+        .form-label {
+            color: #4A5568;
+            font-weight: 600;
+        }
+        .input-field, .select-field {
+            border: 1px solid #CBD5E0;
+            transition: all 0.2s;
+        }
+        .input-field:focus, .select-field:focus {
+            border-color: #8D6E63;
+            box-shadow: 0 0 0 2px rgba(141, 110, 99, 0.2);
+        }
+        /* Calendar Styling */
+        #calendar-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+        .calendar-day {
+            transition: background-color 0.2s, color 0.2s;
+            cursor: pointer;
+        }
+        .calendar-day.header {
+            font-weight: 700;
+            color: #8D6E63;
+        }
+        .calendar-day.available:hover {
+            background-color: #F3EFEA;
+        }
+        .calendar-day.unavailable {
+            background-color: #FEE2E2;
+            color: #C53030;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+        .calendar-day.selected {
+            background-color: #8D6E63;
+            color: white;
+            font-weight: 700;
+        }
+        /* Time Slots Styling */
+        #time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+        .time-slot {
+            transition: background-color 0.2s, color 0.2s, transform 0.1s;
+            cursor: pointer;
+        }
+        .time-slot.booked {
+            background-color: #FECACA;
+            color: #9B2C2C;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+        .time-slot.selected {
+            background-color: #8D6E63;
+            color: white;
+        }
+        .time-slot.available:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
-
-<body>
-
-
-
-    <div class="container">
-
-        <h1>จองคิวทำผม</h1>
-
-
-
-        <div id="alert-message"></div>
-
-
-
-        <div id="booking-form">
-
-            <div class="form-group">
-
-                <label for="date-picker">1. เลือกวันที่ต้องการจอง</label>
-
-                <div id="calendar-nav">
-
-                    <button id="prev-month">&lt;</button>
-
-                    <span id="current-month-year"></span>
-
-                    <button id="next-month">&gt;</button>
-
-                </div>
-
-                <div id="calendar-container"></div>
-
-                <input type="hidden" id="selected-date">
-
-            </div>
-
-
-
-            <div class="form-group" id="time-selection-group" style="display:none;">
-
-                <label>2. เลือกเวลา</label>
-
-                <div id="time-slots"></div>
-
-                 <input type="hidden" id="selected-time">
-
-            </div>
-
-
-
-            <div class="form-group">
-
-                <label for="main-service">3. เลือกบริการหลัก</label>
-
-                <select id="main-service" required>
-
-                    <option value="">-- กรุณาเลือก --</option>
-
-                </select>
-
-            </div>
-
-            <div class="form-group">
-
-                <label for="sub-service">4. เลือกบริการเสริม (ถ้ามี)</label>
-
-                <select id="sub-service">
-
-                    <option value="">-- ไม่มี --</option>
-
-                </select>
-
-            </div>
-
-
-
-            <div class="form-group">
-
-                <label for="technician">5. เลือกช่าง</label>
-
-                <select id="technician" required>
-
-                    <option value="">-- กรุณาเลือก --</option>
-
-                </select>
-
-            </div>
-
-
-
-            <div class="form-group">
-
-                <label for="customer-name">6. ชื่อ-นามสกุล</label>
-
-                <input type="text" id="customer-name" required>
-
-            </div>
-
-            <div class="form-group">
-
-                <label for="phone-number">7. เบอร์โทรศัพท์</label>
-
-                <input type="tel" id="phone-number" placeholder="เช่น 0812345678" required>
-
-            </div>
-
-             <div class="form-group">
-
-                <label for="notes">หมายเหตุ (ถ้ามี)</label>
-
-                <input type="text" id="notes">
-
-            </div>
-
-
-
-            <div id="booking-summary">
-
-                <h2>สรุปการจอง</h2>
-
-                <p><strong>วันที่:</strong> <span id="summary-date">N/A</span></p>
-
-                <p><strong>เวลา:</strong> <span id="summary-time">N/A</span></p>
-
-                <p><strong>บริการ:</strong> <span id="summary-service">N/A</span></p>
-
-                <p><strong>ช่าง:</strong> <span id="summary-technician">N/A</span></p>
-
-                <hr>
-
-                <p id="total-price"><strong>ราคารวม: 0 บาท</strong></p>
-
-            </div>
-
-
-
-            <button id="submit-booking" disabled>ยืนยันการจอง</button>
-
-        </div>
-
-    </div>
-
-
-
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-
-
-    <script>
-
-        // --- CONFIGURATION ---
-
-        const BACKEND_URL = 'https://salon-rbms.onrender.com'; // e.g., https://your-backend.onrender.com
-
-        const LIFF_ID = '2007895406-VWgOqgvW'; // <--- IMPORTANT: REPLACE WITH YOUR LIFF ID
-
-
-
-        // --- DOM ELEMENTS ---
-
-        const bookingForm = document.getElementById('booking-form');
-
-        const mainServiceSelect = document.getElementById('main-service');
-
-        const subServiceSelect = document.getElementById('sub-service');
-
-        const technicianSelect = document.getElementById('technician');
-
-        const customerNameInput = document.getElementById('customer-name');
-
-        const phoneNumberInput = document.getElementById('phone-number');
-
-        const notesInput = document.getElementById('notes');
-
-        const submitButton = document.getElementById('submit-booking');
-
-        const alertMessage = document.getElementById('alert-message');
-
-
-
-        // Summary elements
-
-        const summaryDate = document.getElementById('summary-date');
-
-        const summaryTime = document.getElementById('summary-time');
-
-        const summaryService = document.getElementById('summary-service');
-
-        const summaryTechnician = document.getElementById('summary-technician');
-
-        const totalPriceDisplay = document.getElementById('total-price');
-
-
-
-        // Calendar & Time
-
-        const calendarContainer = document.getElementById('calendar-container');
-
-        const currentMonthYearDisplay = document.getElementById('current-month-year');
-
-        const prevMonthBtn = document.getElementById('prev-month');
-
-        const nextMonthBtn = document.getElementById('next-month');
-
-        const timeSelectionGroup = document.getElementById('time-selection-group');
-
-        const timeSlotsContainer = document.getElementById('time-slots');
-
-
-
-        // --- STATE ---
-
-        let lineUserId = null;
-
-        let lineDisplayName = null;
-
-        let servicesData = { prices: {} };
-
-        let selectedDate = null;
-
-        let selectedTime = null;
-
-        let currentDate = new Date();
-
-
-
-        // --- INITIALIZATION ---
-
-        document.addEventListener('DOMContentLoaded', async () => {
-
-            await initializeLiff();
-
-            await Promise.all([
-
-                fetchServices(),
-
-                fetchTechnicians()
-
-            ]);
-
-            renderCalendar();
-
-            setupEventListeners();
-
-        });
-
-
-
-        // Initialize LIFF
-
-        async function initializeLiff() {
-
-            try {
-
-                await liff.init({ liffId: LIFF_ID });
-
-                if (!liff.isLoggedIn()) {
-
-                    liff.login();
-
-                    return;
-
-                }
-
-                const profile = await liff.getProfile();
-
-                lineUserId = profile.userId;
-
-                lineDisplayName = profile.displayName;
-
-                customerNameInput.value = lineDisplayName;
-
-            } catch (error) {
-
-                console.error('LIFF Initialization failed', error);
-
-                showAlert('ไม่สามารถเชื่อมต่อกับ LINE ได้', 'danger');
-
-            }
-
-        }
-
-
-
-        // --- DATA FETCHING ---
-
-        async function fetchTechnicians() {
-
-            try {
-
-                const response = await fetch(`${BACKEND_URL}/api/technicians`);
-
-                const technicians = await response.json();
-
-                technicians.forEach(name => {
-
-                    const option = new Option(name, name);
-
-                    technicianSelect.add(option);
-
-                });
-
-            } catch (error) {
-
-                console.error('Error fetching technicians:', error);
-
-                showAlert('ไม่สามารถโหลดรายชื่อช่างได้', 'danger');
-
-            }
-
-        }
-
-
-
-        async function fetchServices() {
-
-            try {
-
-                const response = await fetch(`${BACKEND_URL}/api/services`);
-
-                servicesData = await response.json();
-
-                
-
-                servicesData.mainServices.forEach(service => {
-
-                    const option = new Option(service, service);
-
-                    mainServiceSelect.add(option);
-
-                });
-
-
-
-                servicesData.subServices.forEach(service => {
-
-                    const option = new Option(service, service);
-
-                    subServiceSelect.add(option);
-
-                });
-
-            } catch (error) {
-
-                console.error('Error fetching services:', error);
-
-                 showAlert('ไม่สามารถโหลดข้อมูลบริการได้', 'danger');
-
-            }
-
-        }
-
-
-
-        async function checkAvailability(date) {
-
-            try {
-
-                const response = await fetch(`${BACKEND_URL}/api/availability?date=${date}`);
-
-                if (!response.ok) throw new Error('Failed to fetch');
-
-                return await response.json();
-
-            } catch (error) {
-
-                console.error('Error checking availability:', error);
-
-                return []; // Assume all slots are available on error
-
-            }
-
-        }
-
-
-
-        // --- CALENDAR LOGIC ---
-
-        function renderCalendar() {
-
-            calendarContainer.innerHTML = '';
-
-            const month = currentDate.getMonth();
-
-            const year = currentDate.getFullYear();
-
-            currentMonthYearDisplay.textContent = `${year} - ${String(month + 1).padStart(2, '0')}`;
-
-
-
-            const firstDay = new Date(year, month, 1).getDay();
-
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-
-
-            // Add headers
-
-            ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].forEach(day => {
-
-                const dayEl = document.createElement('div');
-
-                dayEl.className = 'calendar-day header';
-
-                dayEl.textContent = day;
-
-                calendarContainer.appendChild(dayEl);
-
-            });
-
-            
-
-            // Add empty cells for days before the 1st
-
-            for (let i = 0; i < firstDay; i++) {
-
-                 calendarContainer.appendChild(document.createElement('div'));
-
-            }
-
-
-
-            // Add day cells
-
-            for (let day = 1; day <= daysInMonth; day++) {
-
-                const dayEl = document.createElement('div');
-
-                dayEl.textContent = day;
-
-                dayEl.className = 'calendar-day';
-
-                const dayDate = new Date(year, month, day);
-
-                const today = new Date();
-
-                today.setHours(0,0,0,0);
-
-
-
-                if (dayDate < today) {
-
-                    dayEl.classList.add('unavailable');
-
-                } else {
-
-                    dayEl.classList.add('available');
-
-                    dayEl.dataset.date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-                    dayEl.addEventListener('click', () => selectDate(dayEl));
-
-                }
-
-
-
-                if (dayEl.dataset.date === selectedDate) {
-
-                    dayEl.classList.add('selected');
-
-                }
-
-                calendarContainer.appendChild(dayEl);
-
-            }
-
-        }
-
-
-
-        async function selectDate(dayElement) {
-
-            if (dayElement.classList.contains('unavailable')) return;
-
-
-
-            // Clear previous selection
-
-            document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
-
-            
-
-            dayElement.classList.add('selected');
-
-            selectedDate = dayElement.dataset.date;
-
-            summaryDate.textContent = selectedDate;
-
-            timeSelectionGroup.style.display = 'block';
-
-            await renderTimeSlots(selectedDate);
-
-            updateSummary();
-
-        }
-
-
-
-        // --- TIME SLOT LOGIC ---
-
-        async function renderTimeSlots(date) {
-
-            timeSlotsContainer.innerHTML = 'Loading...';
-
-            const bookedSlots = await checkAvailability(date);
-
-            timeSlotsContainer.innerHTML = '';
-
-
-
-            const availableTimes = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-
-            
-
-            availableTimes.forEach(time => {
-
-                const slotEl = document.createElement('div');
-
-                slotEl.className = 'time-slot';
-
-                slotEl.textContent = time;
-
-                
-
-                if (bookedSlots.includes(time)) {
-
-                    slotEl.classList.add('booked');
-
-                } else {
-
-                    slotEl.addEventListener('click', () => selectTime(slotEl));
-
-                }
-
-                 if (time === selectedTime) {
-
-                    slotEl.classList.add('selected');
-
-                }
-
-                timeSlotsContainer.appendChild(slotEl);
-
-            });
-
-        }
-
-        
-
-        function selectTime(slotElement) {
-
-             if (slotElement.classList.contains('booked')) return;
-
-              // Clear previous selection
-
-            document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
-
-            slotElement.classList.add('selected');
-
-            selectedTime = slotElement.textContent;
-
-            summaryTime.textContent = selectedTime;
-
-            updateSummary();
-
-        }
-
-
-
-        // --- UI & EVENT LISTENERS ---
-
-        function setupEventListeners() {
-
-            prevMonthBtn.addEventListener('click', () => {
-
-                currentDate.setMonth(currentDate.getMonth() - 1);
-
-                renderCalendar();
-
-            });
-
-            nextMonthBtn.addEventListener('click', () => {
-
-                currentDate.setMonth(currentDate.getMonth() + 1);
-
-                renderCalendar();
-
-            });
-
-            
-
-            // Update summary on any form change
-
-            [mainServiceSelect, subServiceSelect, technicianSelect].forEach(el => {
-
-                el.addEventListener('change', updateSummary);
-
-            });
-
-
-
-            // Handle form submission
-
-            submitButton.addEventListener('click', handleBookingSubmit);
-
-        }
-
-
-
-        // --- SUMMARY & PRICE CALCULATION ---
-
-        function updateSummary() {
-
-            // Update selected services text
-
-            const mainSvc = mainServiceSelect.value;
-
-            const subSvc = subServiceSelect.value;
-
-            let serviceText = mainSvc || "N/A";
-
-            if (mainSvc && subSvc) {
-
-                serviceText += ` + ${subSvc}`;
-
-            }
-
-            summaryService.textContent = serviceText;
-
-
-
-            // Update technician
-
-            summaryTechnician.textContent = technicianSelect.value || "N/A";
-
-
-
-            // Calculate Price
-
-            let total = 0;
-
-            if (mainSvc) {
-
-                total += servicesData.prices[`${mainSvc}-`] || 0;
-
-            }
-
-            if (subSvc) {
-
-                 // Assumes sub-service price is independent. Adjust if needed.
-
-                 const subKey = Object.keys(servicesData.prices).find(k => k.endsWith(`-${subSvc}`));
-
-                 total += servicesData.prices[subKey] || 0;
-
-            }
-
-
-
-            totalPriceDisplay.innerHTML = `<strong>ราคารวม: ${total.toLocaleString()} บาท</strong>`;
-
-
-
-            // Enable/Disable submit button
-
-            if (selectedDate && selectedTime && mainServiceSelect.value && technicianSelect.value && customerNameInput.value && phoneNumberInput.value) {
-
-                submitButton.disabled = false;
-
-            } else {
-
-                submitButton.disabled = true;
-
-            }
-
-        }
-
-
-
-        // --- FORM SUBMISSION ---
-
-        async function handleBookingSubmit() {
-
-            submitButton.disabled = true;
-
-            submitButton.textContent = 'กำลังจอง...';
-
-
-
-            const bookingData = {
-
-                timestamp: new Date().toISOString(),
-
-                date: selectedDate,
-
-                time: selectedTime,
-
-                mainService: mainServiceSelect.value,
-
-                subService: subServiceSelect.value,
-
-                technician: technicianSelect.value,
-
-                price: parseFloat(totalPriceDisplay.textContent.replace(/[^0-9.-]+/g,"")),
-
-                customerName: customerNameInput.value,
-
-                lineUserId: lineUserId,
-
-                phoneNumber: phoneNumberInput.value,
-
-                notes: notesInput.value,
-
-            };
-
-
-
-            try {
-
-                const response = await fetch(`${BACKEND_URL}/api/booking`, {
-
-                    method: 'POST',
-
-                    headers: { 'Content-Type': 'application/json' },
-
-                    body: JSON.stringify(bookingData)
-
-                });
-
-
-
-                const result = await response.json();
-
-
-
-                if (response.ok) {
-
-                    showAlert('การจองสำเร็จ! กรุณาตรวจสอบข้อความยืนยันใน LINE', 'success');
-
-                    bookingForm.style.display = 'none';
-
-                    if (liff.isInClient()) {
-
-                        setTimeout(() => liff.closeWindow(), 3000);
-
-                    }
-
-                } else {
-
-                     throw new Error(result.message || 'เกิดข้อผิดพลาดในการจอง');
-
-                }
-
-
-
-            } catch (error) {
-
-                console.error('Booking failed:', error);
-
-                showAlert(error.message, 'danger');
-
-                submitButton.disabled = false;
-
-                submitButton.textContent = 'ยืนยันการจอง';
-
-            }
-
-        }
-
-
-
-        function showAlert(message, type = 'danger') {
-
-            alertMessage.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-
-             setTimeout(() => { alertMessage.innerHTML = '' }, 5000);
-
-        }
-
-
-
-    </script>
-
+<body class="bg-gray-100 p-4 min-h-screen flex items-center justify-center">
+    <div class="container max-w-2xl mx-auto rounded-xl shadow-lg p-6 md:p-8">
+        <h1 class="text-3xl font-bold text-center mb-6 text-[#5D4037]">จองคิวทำผม</h1>
+        <p class="text-center text-gray-500 mb-8">เลือกบริการและเวลาที่คุณสะดวก</p>
+
+        <div id="alert-message" class="mb-4"></div>
+
+        <div id="booking-form">
+            <!-- ขั้นตอนที่ 1: เลือกวันที่ -->
+            <div class="mb-6">
+                <label class="form-label block mb-2 text-lg">1. เลือกวันที่ต้องการจอง</label>
+                <div class="flex items-center justify-between mb-4">
+                    <button id="prev-month" class="bg-[#A1887F] text-white p-2 rounded-full hover:bg-[#8D6E63] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                    <span id="current-month-year" class="text-xl font-bold text-[#5D4037]"></span>
+                    <button id="next-month" class="bg-[#A1887F] text-white p-2 rounded-full hover:bg-[#8D6E63] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                </div>
+                <div id="calendar-container" class="gap-1 md:gap-2 text-center text-sm md:text-base"></div>
+                <input type="hidden" id="selected-date">
+            </div>
+
+            <!-- ขั้นตอนที่ 2: เลือกเวลา -->
+            <div class="mb-6" id="time-selection-group" style="display:none;">
+                <label class="form-label block mb-2 text-lg">2. เลือกเวลา</label>
+                <div id="time-slots" class="gap-2 p-2"></div>
+                <input type="hidden" id="selected-time">
+            </div>
+
+            <!-- ขั้นตอนที่ 3: เลือกบริการหลัก -->
+            <div class="mb-6">
+                <label for="main-service" class="form-label block mb-2 text-lg">3. เลือกบริการหลัก</label>
+                <select id="main-service" class="select-field w-full p-3 rounded-lg" required>
+                    <option value="">-- กรุณาเลือก --</option>
+                </select>
+            </div>
+            
+            <!-- ขั้นตอนที่ 4: เลือกบริการเสริม -->
+            <div class="mb-6">
+                <label for="sub-service" class="form-label block mb-2 text-lg">4. เลือกบริการเสริม (ถ้ามี)</label>
+                <select id="sub-service" class="select-field w-full p-3 rounded-lg">
+                    <option value="">-- ไม่มี --</option>
+                </select>
+            </div>
+            
+            <!-- ขั้นตอนที่ 5: เลือกช่าง -->
+            <div class="mb-6">
+                <label for="technician" class="form-label block mb-2 text-lg">5. เลือกช่าง</label>
+                <select id="technician" class="select-field w-full p-3 rounded-lg" required>
+                    <option value="">-- กรุณาเลือก --</option>
+                </select>
+            </div>
+            
+            <!-- ขั้นตอนที่ 6: ข้อมูลลูกค้า -->
+            <div class="mb-6">
+                <label for="customer-name" class="form-label block mb-2 text-lg">6. ชื่อ-นามสกุล</label>
+                <input type="text" id="customer-name" class="input-field w-full p-3 rounded-lg" required>
+            </div>
+            <div class="mb-6">
+                <label for="phone-number" class="form-label block mb-2 text-lg">7. เบอร์โทรศัพท์</label>
+                <input type="tel" id="phone-number" placeholder="เช่น 0812345678" class="input-field w-full p-3 rounded-lg" required>
+            </div>
+            <div class="mb-6">
+                <label for="notes" class="form-label block mb-2 text-lg">หมายเหตุ (ถ้ามี)</label>
+                <input type="text" id="notes" class="input-field w-full p-3 rounded-lg">
+            </div>
+
+            <!-- สรุปการจอง -->
+            <div id="booking-summary" class="bg-gray-50 p-6 rounded-lg mb-6 shadow-inner">
+                <h2 class="text-xl font-bold mb-4 text-[#5D4037]">สรุปการจอง</h2>
+                <div class="grid grid-cols-2 gap-2 text-base md:text-lg">
+                    <p><strong>วันที่:</strong> <span id="summary-date" class="font-normal text-gray-700">N/A</span></p>
+                    <p><strong>เวลา:</strong> <span id="summary-time" class="font-normal text-gray-700">N/A</span></p>
+                    <p class="col-span-2"><strong>บริการ:</strong> <span id="summary-service" class="font-normal text-gray-700">N/A</span></p>
+                    <p class="col-span-2"><strong>ช่าง:</strong> <span id="summary-technician" class="font-normal text-gray-700">N/A</span></p>
+                </div>
+                <hr class="my-4 border-gray-200">
+                <p id="total-price" class="text-right text-xl font-bold text-[#4E342E]">ราคารวม: 0 บาท</p>
+            </div>
+
+            <button id="submit-booking" class="w-full bg-[#8D6E63] text-white p-4 rounded-lg text-lg font-bold hover:bg-[#6D4C41] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                ยืนยันการจอง
+            </button>
+        </div>
+    </div>
+
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <script>
+        // --- CONFIGURATION ---
+        // URL ของเซิร์ฟเวอร์ Backend ที่คุณใช้งาน
+        const BACKEND_URL = 'https://salon-rbms.onrender.com';
+        // LIFF ID ของคุณ
+        const LIFF_ID = '2007895406-VWgOqgvW';
+
+        // --- DOM ELEMENTS ---
+        const bookingForm = document.getElementById('booking-form');
+        const mainServiceSelect = document.getElementById('main-service');
+        const subServiceSelect = document.getElementById('sub-service');
+        const technicianSelect = document.getElementById('technician');
+        const customerNameInput = document.getElementById('customer-name');
+        const phoneNumberInput = document.getElementById('phone-number');
+        const notesInput = document.getElementById('notes');
+        const submitButton = document.getElementById('submit-booking');
+        const alertMessage = document.getElementById('alert-message');
+
+        // ส่วนแสดงสรุปการจอง
+        const summaryDate = document.getElementById('summary-date');
+        const summaryTime = document.getElementById('summary-time');
+        const summaryService = document.getElementById('summary-service');
+        const summaryTechnician = document.getElementById('summary-technician');
+        const totalPriceDisplay = document.getElementById('total-price');
+
+        // ส่วนปฏิทินและเวลา
+        const calendarContainer = document.getElementById('calendar-container');
+        const currentMonthYearDisplay = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const timeSelectionGroup = document.getElementById('time-selection-group');
+        const timeSlotsContainer = document.getElementById('time-slots');
+
+        // --- STATE ---
+        let lineUserId = null;
+        let lineDisplayName = null;
+        let servicesData = { prices: {} };
+        let selectedDate = null;
+        let selectedTime = null;
+        let currentDate = new Date();
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeLiff();
+            // เรียกใช้ Promise.all เพื่อดึงข้อมูลบริการและช่างพร้อมกัน
+            await Promise.all([
+                fetchServices(),
+                fetchTechnicians()
+            ]);
+            renderCalendar();
+            setupEventListeners();
+        });
+
+        // ฟังก์ชันสำหรับเริ่มต้น LIFF
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+                const profile = await liff.getProfile();
+                lineUserId = profile.userId;
+                lineDisplayName = profile.displayName;
+                customerNameInput.value = lineDisplayName;
+            } catch (error) {
+                console.error('LIFF Initialization failed', error);
+                showAlert('ไม่สามารถเชื่อมต่อกับ LINE ได้', 'danger');
+            }
+        }
+
+        // --- DATA FETCHING ---
+        // ดึงข้อมูลช่างจาก Backend
+        async function fetchTechnicians() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/technicians`);
+                const technicians = await response.json();
+                technicians.forEach(name => {
+                    const option = new Option(name, name);
+                    technicianSelect.add(option);
+                });
+            } catch (error) {
+                console.error('Error fetching technicians:', error);
+                showAlert('ไม่สามารถโหลดรายชื่อช่างได้', 'danger');
+            }
+        }
+
+        // ดึงข้อมูลบริการจาก Backend
+        async function fetchServices() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/services`);
+                servicesData = await response.json();
+                
+                servicesData.mainServices.forEach(service => {
+                    const option = new Option(service, service);
+                    mainServiceSelect.add(option);
+                });
+
+                servicesData.subServices.forEach(service => {
+                    const option = new Option(service, service);
+                    subServiceSelect.add(option);
+                });
+            } catch (error) {
+                console.error('Error fetching services:', error);
+                showAlert('ไม่สามารถโหลดข้อมูลบริการได้', 'danger');
+            }
+        }
+
+        // ตรวจสอบเวลาที่ว่างสำหรับวันที่เลือก
+        async function checkAvailability(date) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/availability?date=${date}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                return await response.json();
+            } catch (error) {
+                console.error('Error checking availability:', error);
+                return []; // Assume all slots are available on error
+            }
+        }
+
+        // --- CALENDAR LOGIC ---
+        // แสดงปฏิทิน
+        function renderCalendar() {
+            calendarContainer.innerHTML = '';
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            currentMonthYearDisplay.textContent = `${year} - ${String(month + 1).padStart(2, '0')}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // เพิ่มหัวข้อวันในสัปดาห์
+            ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].forEach(day => {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day header p-2';
+                dayEl.textContent = day;
+                calendarContainer.appendChild(dayEl);
+            });
+            
+            // เพิ่มช่องว่างสำหรับวันก่อนวันที่ 1
+            for (let i = 0; i < firstDay; i++) {
+                calendarContainer.appendChild(document.createElement('div'));
+            }
+
+            // เพิ่มวันที่ในเดือน
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.textContent = day;
+                dayEl.className = 'calendar-day p-2 rounded-lg';
+                const dayDate = new Date(year, month, day);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                if (dayDate < today) {
+                    dayEl.classList.add('unavailable');
+                } else {
+                    dayEl.classList.add('available');
+                    dayEl.dataset.date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    dayEl.addEventListener('click', () => selectDate(dayEl));
+                }
+
+                if (dayEl.dataset.date === selectedDate) {
+                    dayEl.classList.add('selected');
+                }
+                calendarContainer.appendChild(dayEl);
+            }
+        }
+
+        // เลือกวันที่
+        async function selectDate(dayElement) {
+            if (dayElement.classList.contains('unavailable')) return;
+
+            // ลบ selection เก่า
+            document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
+            
+            dayElement.classList.add('selected');
+            selectedDate = dayElement.dataset.date;
+            summaryDate.textContent = selectedDate;
+            timeSelectionGroup.style.display = 'block';
+            await renderTimeSlots(selectedDate);
+            updateSummary();
+        }
+
+        // --- TIME SLOT LOGIC ---
+        // แสดงช่วงเวลาที่ว่าง
+        async function renderTimeSlots(date) {
+            timeSlotsContainer.innerHTML = '<p class="text-center text-gray-500">กำลังโหลดเวลา...</p>';
+            const bookedSlots = await checkAvailability(date);
+            timeSlotsContainer.innerHTML = '';
+
+            const availableTimes = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+            
+            availableTimes.forEach(time => {
+                const slotEl = document.createElement('div');
+                slotEl.className = 'time-slot p-3 text-center rounded-lg shadow';
+                slotEl.textContent = time;
+                
+                if (bookedSlots.includes(time)) {
+                    slotEl.classList.add('booked');
+                } else {
+                    slotEl.classList.add('available');
+                    slotEl.addEventListener('click', () => selectTime(slotEl));
+                }
+                if (time === selectedTime) {
+                    slotEl.classList.add('selected');
+                }
+                timeSlotsContainer.appendChild(slotEl);
+            });
+        }
+        
+        // เลือกเวลา
+        function selectTime(slotElement) {
+            if (slotElement.classList.contains('booked')) return;
+            // ลบ selection เก่า
+            document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
+            slotElement.classList.add('selected');
+            selectedTime = slotElement.textContent;
+            summaryTime.textContent = selectedTime;
+            updateSummary();
+        }
+
+        // --- UI & EVENT LISTENERS ---
+        function setupEventListeners() {
+            prevMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+            nextMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+            
+            // อัปเดตสรุปการจองเมื่อมีการเปลี่ยนแปลงในฟอร์ม
+            [mainServiceSelect, subServiceSelect, technicianSelect].forEach(el => {
+                el.addEventListener('change', updateSummary);
+            });
+
+            [customerNameInput, phoneNumberInput].forEach(el => {
+                el.addEventListener('input', updateSummary);
+            });
+
+            // จัดการการส่งฟอร์ม
+            submitButton.addEventListener('click', handleBookingSubmit);
+        }
+
+        // --- SUMMARY & PRICE CALCULATION ---
+        function updateSummary() {
+            // อัปเดตข้อความบริการที่เลือก
+            const mainSvc = mainServiceSelect.value;
+            const subSvc = subServiceSelect.value;
+            let serviceText = mainSvc || "N/A";
+            if (mainSvc && subSvc) {
+                serviceText += ` + ${subSvc}`;
+            }
+            summaryService.textContent = serviceText;
+
+            // อัปเดตช่าง
+            summaryTechnician.textContent = technicianSelect.value || "N/A";
+
+            // คำนวณราคา
+            let total = 0;
+            if (mainSvc) {
+                total += servicesData.prices[`${mainSvc}-`] || 0;
+            }
+            if (subSvc) {
+                const subKey = Object.keys(servicesData.prices).find(k => k.startsWith(`${mainSvc}-`) && k.endsWith(`-${subSvc}`));
+                if (subKey) {
+                    total += servicesData.prices[subKey] || 0;
+                } else {
+                    // หากไม่พบราคาสำหรับบริการเสริม ให้หาจากราคาบริการเสริมแบบเดี่ยว (ถ้ามี)
+                    const standaloneSubKey = Object.keys(servicesData.prices).find(k => k.endsWith(`-${subSvc}`) && !k.includes(`-`));
+                    if(standaloneSubKey) {
+                         total += servicesData.prices[standaloneSubKey] || 0;
+                    }
+                }
+            }
+
+            totalPriceDisplay.innerHTML = `<span class="text-gray-600 font-normal">ราคารวม: </span> ${total.toLocaleString()} บาท`;
+
+            // เปิด/ปิดปุ่มยืนยันการจอง
+            const isFormValid = selectedDate && selectedTime && mainServiceSelect.value && technicianSelect.value && customerNameInput.value && phoneNumberInput.value;
+            submitButton.disabled = !isFormValid;
+        }
+
+        // --- FORM SUBMISSION ---
+        async function handleBookingSubmit() {
+            submitButton.disabled = true;
+            submitButton.textContent = 'กำลังจอง...';
+
+            const bookingData = {
+                timestamp: new Date().toISOString(),
+                date: selectedDate,
+                time: selectedTime,
+                mainService: mainServiceSelect.value,
+                subService: subServiceSelect.value,
+                technician: technicianSelect.value,
+                price: parseFloat(totalPriceDisplay.textContent.replace(/[^0-9.-]+/g,"")),
+                customerName: customerNameInput.value,
+                lineUserId: lineUserId,
+                phoneNumber: phoneNumberInput.value,
+                notes: notesInput.value,
+            };
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/booking`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('การจองสำเร็จ! กรุณาตรวจสอบข้อความยืนยันใน LINE', 'success');
+                    bookingForm.style.display = 'none';
+                    if (liff.isInClient()) {
+                        setTimeout(() => liff.closeWindow(), 3000);
+                    }
+                } else {
+                    throw new Error(result.message || 'เกิดข้อผิดพลาดในการจอง');
+                }
+
+            } catch (error) {
+                console.error('Booking failed:', error);
+                showAlert(error.message, 'danger');
+                submitButton.disabled = false;
+                submitButton.textContent = 'ยืนยันการจอง';
+            }
+        }
+
+        function showAlert(message, type = 'danger') {
+            alertMessage.innerHTML = `<div class="alert alert-${type} p-4 rounded-lg mb-4">${message}</div>`;
+            setTimeout(() => { alertMessage.innerHTML = '' }, 5000);
+        }
+
+        // Custom alert styling for Tailwind
+        const style = document.createElement('style');
+        style.textContent = `
+            .alert-success { background-color: #D1FAE5; color: #065F46; }
+            .alert-danger { background-color: #FEE2E2; color: #9B2C2C; }
+        `;
+        document.head.appendChild(style);
+
+    </script>
 </body>
-
 </html>
