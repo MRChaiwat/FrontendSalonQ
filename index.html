@@ -211,11 +211,10 @@
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', async () => {
             await initializeLiff();
+            // เรียกใช้ Promise.all เพื่อดึงข้อมูลบริการและช่างพร้อมกัน
             await Promise.all([
                 fetchServices(),
-                fetchTechnicians(),
-                // เพิ่มการเรียก fetchBookedSlots เพื่อตรวจสอบช่วงเวลาที่ถูกจองแล้ว
-                fetchBookedSlots()
+                fetchTechnicians()
             ]);
             renderCalendar();
             setupEventListeners();
@@ -256,59 +255,35 @@
         }
 
         // ดึงข้อมูลบริการจาก Backend
-        // ** ปรับปรุงโครงสร้างข้อมูลสำหรับบริการหลักและบริการเสริม **
         async function fetchServices() {
             try {
                 const response = await fetch(`${BACKEND_URL}/api/services`);
-                const data = await response.json();
+                servicesData = await response.json();
                 
-                // สมมติว่าข้อมูลที่ได้จาก Backend มีการจัดกลุ่มบริการเสริมตามบริการหลักแล้ว
-                // เช่น servicesData = { mainServices: [{ name: "ตัดผม", subServices: ["สระผม"] }], prices: { ... } }
-                servicesData = data;
-                
-                // เติมตัวเลือกบริการหลัก
                 servicesData.mainServices.forEach(service => {
-                    const option = new Option(service.name, service.name);
+                    const option = new Option(service, service);
                     mainServiceSelect.add(option);
                 });
-                
-                // เริ่มต้นด้วยการแสดงบริการเสริมสำหรับบริการหลักตัวแรก
-                updateSubServices();
 
+                servicesData.subServices.forEach(service => {
+                    const option = new Option(service, service);
+                    subServiceSelect.add(option);
+                });
             } catch (error) {
                 console.error('Error fetching services:', error);
                 showAlert('ไม่สามารถโหลดข้อมูลบริการได้', 'danger');
             }
         }
-        
-        // --- LOGIC: UPDATE SUB-SERVICES DROPDOWN ---
-        // ฟังก์ชันนี้จะอัปเดตตัวเลือกใน Dropdown บริการเสริม ตามบริการหลักที่เลือก
-        function updateSubServices() {
-            const selectedMainService = mainServiceSelect.value;
-            subServiceSelect.innerHTML = '<option value="">-- ไม่มี --</option>'; // เคลียร์ตัวเลือกเก่า
 
-            if (selectedMainService) {
-                const mainServiceObj = servicesData.mainServices.find(s => s.name === selectedMainService);
-                if (mainServiceObj && mainServiceObj.subServices) {
-                    mainServiceObj.subServices.forEach(subService => {
-                        const option = new Option(subService, subService);
-                        subServiceSelect.add(option);
-                    });
-                }
-            }
-            // เรียกอัปเดตสรุปการจองใหม่ทุกครั้งที่เปลี่ยนบริการหลัก
-            updateSummary();
-        }
-
-        // ดึงข้อมูลเวลาที่ถูกจองแล้วจาก Backend สำหรับวันที่เลือก
-        async function fetchBookedSlots(date) {
+        // ตรวจสอบเวลาที่ว่างสำหรับวันที่เลือก
+        async function checkAvailability(date) {
             try {
-                const response = await fetch(`${BACKEND_URL}/api/booked-slots?date=${date}`);
-                const bookedSlots = await response.json();
-                return bookedSlots;
+                const response = await fetch(`${BACKEND_URL}/api/availability?date=${date}`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                return await response.json();
             } catch (error) {
-                console.error('Error fetching booked slots:', error);
-                return []; // คืนค่า array ว่างถ้ามี error
+                console.error('Error checking availability:', error);
+                return []; // Assume all slots are available on error
             }
         }
 
@@ -359,7 +334,7 @@
                 calendarContainer.appendChild(dayEl);
             }
         }
-        
+
         // เลือกวันที่
         async function selectDate(dayElement) {
             if (dayElement.classList.contains('unavailable')) return;
@@ -379,8 +354,7 @@
         // แสดงช่วงเวลาที่ว่าง
         async function renderTimeSlots(date) {
             timeSlotsContainer.innerHTML = '<p class="text-center text-gray-500">กำลังโหลดเวลา...</p>';
-            // ใช้ fetchBookedSlots เพื่อดึงข้อมูลเวลาที่ถูกจองแล้วจาก backend
-            const bookedSlots = await fetchBookedSlots(date);
+            const bookedSlots = await checkAvailability(date);
             timeSlotsContainer.innerHTML = '';
 
             const availableTimes = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
@@ -426,9 +400,9 @@
             });
             
             // อัปเดตสรุปการจองเมื่อมีการเปลี่ยนแปลงในฟอร์ม
-            mainServiceSelect.addEventListener('change', updateSubServices); // เพิ่ม Event Listener ใหม่
-            subServiceSelect.addEventListener('change', updateSummary);
-            technicianSelect.addEventListener('change', updateSummary);
+            [mainServiceSelect, subServiceSelect, technicianSelect].forEach(el => {
+                el.addEventListener('change', updateSummary);
+            });
 
             [customerNameInput, phoneNumberInput].forEach(el => {
                 el.addEventListener('input', updateSummary);
@@ -440,6 +414,7 @@
 
         // --- SUMMARY & PRICE CALCULATION ---
         function updateSummary() {
+            // อัปเดตข้อความบริการที่เลือก
             const mainSvc = mainServiceSelect.value;
             const subSvc = subServiceSelect.value;
             let serviceText = mainSvc || "N/A";
@@ -448,21 +423,30 @@
             }
             summaryService.textContent = serviceText;
 
+            // อัปเดตช่าง
             summaryTechnician.textContent = technicianSelect.value || "N/A";
 
+            // คำนวณราคา
             let total = 0;
             if (mainSvc) {
-                // ค้นหาราคาบริการหลัก
-                total += servicesData.prices[mainSvc] || 0;
+                total += servicesData.prices[`${mainSvc}-`] || 0;
             }
             if (subSvc) {
-                // ค้นหาราคาบริการเสริมที่เกี่ยวข้องกับบริการหลัก
-                const subKey = `${mainSvc}-${subSvc}`;
-                total += servicesData.prices[subKey] || 0;
+                const subKey = Object.keys(servicesData.prices).find(k => k.startsWith(`${mainSvc}-`) && k.endsWith(`-${subSvc}`));
+                if (subKey) {
+                    total += servicesData.prices[subKey] || 0;
+                } else {
+                    // หากไม่พบราคาสำหรับบริการเสริม ให้หาจากราคาบริการเสริมแบบเดี่ยว (ถ้ามี)
+                    const standaloneSubKey = Object.keys(servicesData.prices).find(k => k.endsWith(`-${subSvc}`) && !k.includes(`-`));
+                    if(standaloneSubKey) {
+                         total += servicesData.prices[standaloneSubKey] || 0;
+                    }
+                }
             }
 
             totalPriceDisplay.innerHTML = `<span class="text-gray-600 font-normal">ราคารวม: </span> ${total.toLocaleString()} บาท`;
 
+            // เปิด/ปิดปุ่มยืนยันการจอง
             const isFormValid = selectedDate && selectedTime && mainServiceSelect.value && technicianSelect.value && customerNameInput.value && phoneNumberInput.value;
             submitButton.disabled = !isFormValid;
         }
@@ -525,18 +509,6 @@
             .alert-danger { background-color: #FEE2E2; color: #9B2C2C; }
         `;
         document.head.appendChild(style);
-        
-        // ฟังก์ชันสำหรับตรวจสอบช่วงเวลาที่ถูกจองแล้ว
-        async function checkAvailability(date) {
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/check-availability?date=${date}`);
-                const data = await response.json();
-                return data; // คาดหวังว่าจะได้ array ของเวลาที่ถูกจองแล้ว เช่น ["10:00", "13:00"]
-            } catch (error) {
-                console.error('Error checking availability:', error);
-                return [];
-            }
-        }
 
     </script>
 </body>
