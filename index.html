@@ -213,7 +213,9 @@
             await initializeLiff();
             await Promise.all([
                 fetchServices(),
-                fetchTechnicians()
+                fetchTechnicians(),
+                // เพิ่มการเรียก fetchBookedSlots เพื่อตรวจสอบช่วงเวลาที่ถูกจองแล้ว
+                fetchBookedSlots()
             ]);
             renderCalendar();
             setupEventListeners();
@@ -298,6 +300,18 @@
             updateSummary();
         }
 
+        // ดึงข้อมูลเวลาที่ถูกจองแล้วจาก Backend สำหรับวันที่เลือก
+        async function fetchBookedSlots(date) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/booked-slots?date=${date}`);
+                const bookedSlots = await response.json();
+                return bookedSlots;
+            } catch (error) {
+                console.error('Error fetching booked slots:', error);
+                return []; // คืนค่า array ว่างถ้ามี error
+            }
+        }
+
         // --- CALENDAR LOGIC ---
         // แสดงปฏิทิน
         function renderCalendar() {
@@ -365,7 +379,8 @@
         // แสดงช่วงเวลาที่ว่าง
         async function renderTimeSlots(date) {
             timeSlotsContainer.innerHTML = '<p class="text-center text-gray-500">กำลังโหลดเวลา...</p>';
-            const bookedSlots = await checkAvailability(date);
+            // ใช้ fetchBookedSlots เพื่อดึงข้อมูลเวลาที่ถูกจองแล้วจาก backend
+            const bookedSlots = await fetchBookedSlots(date);
             timeSlotsContainer.innerHTML = '';
 
             const availableTimes = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
@@ -438,7 +453,7 @@
             let total = 0;
             if (mainSvc) {
                 // ค้นหาราคาบริการหลัก
-                total += servicesData.prices[`${mainSvc}`] || 0;
+                total += servicesData.prices[mainSvc] || 0;
             }
             if (subSvc) {
                 // ค้นหาราคาบริการเสริมที่เกี่ยวข้องกับบริการหลัก
@@ -510,6 +525,18 @@
             .alert-danger { background-color: #FEE2E2; color: #9B2C2C; }
         `;
         document.head.appendChild(style);
+        
+        // ฟังก์ชันสำหรับตรวจสอบช่วงเวลาที่ถูกจองแล้ว
+        async function checkAvailability(date) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/check-availability?date=${date}`);
+                const data = await response.json();
+                return data; // คาดหวังว่าจะได้ array ของเวลาที่ถูกจองแล้ว เช่น ["10:00", "13:00"]
+            } catch (error) {
+                console.error('Error checking availability:', error);
+                return [];
+            }
+        }
 
     </script>
 </body>
