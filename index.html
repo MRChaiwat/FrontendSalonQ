@@ -211,7 +211,6 @@
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', async () => {
             await initializeLiff();
-            // เรียกใช้ Promise.all เพื่อดึงข้อมูลบริการและช่างพร้อมกัน
             await Promise.all([
                 fetchServices(),
                 fetchTechnicians()
@@ -255,36 +254,48 @@
         }
 
         // ดึงข้อมูลบริการจาก Backend
+        // ** ปรับปรุงโครงสร้างข้อมูลสำหรับบริการหลักและบริการเสริม **
         async function fetchServices() {
             try {
                 const response = await fetch(`${BACKEND_URL}/api/services`);
-                servicesData = await response.json();
+                const data = await response.json();
                 
+                // สมมติว่าข้อมูลที่ได้จาก Backend มีการจัดกลุ่มบริการเสริมตามบริการหลักแล้ว
+                // เช่น servicesData = { mainServices: [{ name: "ตัดผม", subServices: ["สระผม"] }], prices: { ... } }
+                servicesData = data;
+                
+                // เติมตัวเลือกบริการหลัก
                 servicesData.mainServices.forEach(service => {
-                    const option = new Option(service, service);
+                    const option = new Option(service.name, service.name);
                     mainServiceSelect.add(option);
                 });
+                
+                // เริ่มต้นด้วยการแสดงบริการเสริมสำหรับบริการหลักตัวแรก
+                updateSubServices();
 
-                servicesData.subServices.forEach(service => {
-                    const option = new Option(service, service);
-                    subServiceSelect.add(option);
-                });
             } catch (error) {
                 console.error('Error fetching services:', error);
                 showAlert('ไม่สามารถโหลดข้อมูลบริการได้', 'danger');
             }
         }
+        
+        // --- LOGIC: UPDATE SUB-SERVICES DROPDOWN ---
+        // ฟังก์ชันนี้จะอัปเดตตัวเลือกใน Dropdown บริการเสริม ตามบริการหลักที่เลือก
+        function updateSubServices() {
+            const selectedMainService = mainServiceSelect.value;
+            subServiceSelect.innerHTML = '<option value="">-- ไม่มี --</option>'; // เคลียร์ตัวเลือกเก่า
 
-        // ตรวจสอบเวลาที่ว่างสำหรับวันที่เลือก
-        async function checkAvailability(date) {
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/availability?date=${date}`);
-                if (!response.ok) throw new Error('Failed to fetch');
-                return await response.json();
-            } catch (error) {
-                console.error('Error checking availability:', error);
-                return []; // Assume all slots are available on error
+            if (selectedMainService) {
+                const mainServiceObj = servicesData.mainServices.find(s => s.name === selectedMainService);
+                if (mainServiceObj && mainServiceObj.subServices) {
+                    mainServiceObj.subServices.forEach(subService => {
+                        const option = new Option(subService, subService);
+                        subServiceSelect.add(option);
+                    });
+                }
             }
+            // เรียกอัปเดตสรุปการจองใหม่ทุกครั้งที่เปลี่ยนบริการหลัก
+            updateSummary();
         }
 
         // --- CALENDAR LOGIC ---
@@ -334,7 +345,7 @@
                 calendarContainer.appendChild(dayEl);
             }
         }
-
+        
         // เลือกวันที่
         async function selectDate(dayElement) {
             if (dayElement.classList.contains('unavailable')) return;
@@ -400,9 +411,9 @@
             });
             
             // อัปเดตสรุปการจองเมื่อมีการเปลี่ยนแปลงในฟอร์ม
-            [mainServiceSelect, subServiceSelect, technicianSelect].forEach(el => {
-                el.addEventListener('change', updateSummary);
-            });
+            mainServiceSelect.addEventListener('change', updateSubServices); // เพิ่ม Event Listener ใหม่
+            subServiceSelect.addEventListener('change', updateSummary);
+            technicianSelect.addEventListener('change', updateSummary);
 
             [customerNameInput, phoneNumberInput].forEach(el => {
                 el.addEventListener('input', updateSummary);
@@ -414,7 +425,6 @@
 
         // --- SUMMARY & PRICE CALCULATION ---
         function updateSummary() {
-            // อัปเดตข้อความบริการที่เลือก
             const mainSvc = mainServiceSelect.value;
             const subSvc = subServiceSelect.value;
             let serviceText = mainSvc || "N/A";
@@ -423,30 +433,21 @@
             }
             summaryService.textContent = serviceText;
 
-            // อัปเดตช่าง
             summaryTechnician.textContent = technicianSelect.value || "N/A";
 
-            // คำนวณราคา
             let total = 0;
             if (mainSvc) {
-                total += servicesData.prices[`${mainSvc}-`] || 0;
+                // ค้นหาราคาบริการหลัก
+                total += servicesData.prices[`${mainSvc}`] || 0;
             }
             if (subSvc) {
-                const subKey = Object.keys(servicesData.prices).find(k => k.startsWith(`${mainSvc}-`) && k.endsWith(`-${subSvc}`));
-                if (subKey) {
-                    total += servicesData.prices[subKey] || 0;
-                } else {
-                    // หากไม่พบราคาสำหรับบริการเสริม ให้หาจากราคาบริการเสริมแบบเดี่ยว (ถ้ามี)
-                    const standaloneSubKey = Object.keys(servicesData.prices).find(k => k.endsWith(`-${subSvc}`) && !k.includes(`-`));
-                    if(standaloneSubKey) {
-                         total += servicesData.prices[standaloneSubKey] || 0;
-                    }
-                }
+                // ค้นหาราคาบริการเสริมที่เกี่ยวข้องกับบริการหลัก
+                const subKey = `${mainSvc}-${subSvc}`;
+                total += servicesData.prices[subKey] || 0;
             }
 
             totalPriceDisplay.innerHTML = `<span class="text-gray-600 font-normal">ราคารวม: </span> ${total.toLocaleString()} บาท`;
 
-            // เปิด/ปิดปุ่มยืนยันการจอง
             const isFormValid = selectedDate && selectedTime && mainServiceSelect.value && technicianSelect.value && customerNameInput.value && phoneNumberInput.value;
             submitButton.disabled = !isFormValid;
         }
