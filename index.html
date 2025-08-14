@@ -301,7 +301,6 @@
                 lineUserId = profile.userId;
                 lineDisplayName = profile.displayName;
                 customerNameInput.value = lineDisplayName;
-                updateSubmitButtonState(); // Call on initial load
             } catch (error) {
                 console.error('LIFF Initialization failed', error);
                 showAlert('ไม่สามารถเชื่อมต่อกับ LINE ได้', 'danger');
@@ -317,7 +316,6 @@
                     const option = new Option(name, name);
                     technicianSelect.add(option);
                 });
-                updateSubmitButtonState(); // Check state after fetching data
             } catch (error) {
                 console.error('Error fetching technicians:', error);
                 showAlert('ไม่สามารถโหลดรายชื่อช่างได้', 'danger');
@@ -328,7 +326,7 @@
             try {
                 const response = await fetch(`${BACKEND_URL}/api/services`);
                 servicesData = await response.json();
-                
+                
                 servicesData.mainServices.forEach(service => {
                     const option = new Option(service, service);
                     mainServiceSelect.add(option);
@@ -338,10 +336,9 @@
                     const option = new Option(service, service);
                     subServiceSelect.add(option);
                 });
-                updateSubmitButtonState(); // Check state after fetching data
             } catch (error) {
                 console.error('Error fetching services:', error);
-                 showAlert('ไม่สามารถโหลดข้อมูลบริการได้', 'danger');
+                showAlert('ไม่สามารถโหลดข้อมูลบริการได้', 'danger');
             }
         }
 
@@ -373,10 +370,10 @@
                 dayEl.textContent = day;
                 calendarContainer.appendChild(dayEl);
             });
-            
+            
             // Add empty cells for days before the 1st
             for (let i = 0; i < firstDay; i++) {
-                 calendarContainer.appendChild(document.createElement('div'));
+                calendarContainer.appendChild(document.createElement('div'));
             }
 
             // Add day cells
@@ -408,14 +405,13 @@
 
             // Clear previous selection
             document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
-            
+            
             dayElement.classList.add('selected');
             selectedDate = dayElement.dataset.date;
             summaryDate.textContent = selectedDate;
             timeSelectionGroup.style.display = 'block';
             await renderTimeSlots(selectedDate);
             updateSummary();
-            updateSubmitButtonState(); // Call after date is selected
         }
 
         // --- TIME SLOT LOGIC ---
@@ -425,33 +421,32 @@
             timeSlotsContainer.innerHTML = '';
 
             const availableTimes = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-            
+            
             availableTimes.forEach(time => {
                 const slotEl = document.createElement('div');
                 slotEl.className = 'time-slot';
                 slotEl.textContent = time;
-                
+                
                 if (bookedSlots.includes(time)) {
                     slotEl.classList.add('booked');
                 } else {
                     slotEl.addEventListener('click', () => selectTime(slotEl));
                 }
-                 if (time === selectedTime) {
+                if (time === selectedTime) {
                     slotEl.classList.add('selected');
                 }
                 timeSlotsContainer.appendChild(slotEl);
             });
         }
-        
+        
         function selectTime(slotElement) {
-             if (slotElement.classList.contains('booked')) return;
-              // Clear previous selection
+            if (slotElement.classList.contains('booked')) return;
+            // Clear previous selection
             document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
             slotElement.classList.add('selected');
             selectedTime = slotElement.textContent;
             summaryTime.textContent = selectedTime;
             updateSummary();
-            updateSubmitButtonState(); // Call after time is selected
         }
 
         // --- UI & EVENT LISTENERS ---
@@ -464,17 +459,15 @@
                 currentDate.setMonth(currentDate.getMonth() + 1);
                 renderCalendar();
             });
-            
-            // Update summary and button state on any form change
-            [mainServiceSelect, subServiceSelect, technicianSelect, customerNameInput, phoneNumberInput].forEach(el => {
-                el.addEventListener('change', () => {
-                    updateSummary();
-                    updateSubmitButtonState();
-                });
-                el.addEventListener('input', () => {
-                    updateSummary();
-                    updateSubmitButtonState();
-                });
+            
+            // Update summary on any form change
+            [mainServiceSelect, subServiceSelect, technicianSelect].forEach(el => {
+                el.addEventListener('change', updateSummary);
+            });
+
+            // เพิ่ม Event Listener สำหรับช่อง input ของลูกค้า
+            [customerNameInput, phoneNumberInput].forEach(el => {
+                el.addEventListener('input', updateSummary);
             });
 
             // Handle form submission
@@ -507,12 +500,13 @@
             }
 
             totalPriceDisplay.innerHTML = `<strong>ราคารวม: ${total.toLocaleString()} บาท</strong>`;
-        }
 
-        // --- UPDATE SUBMIT BUTTON STATE ---
-        function updateSubmitButtonState() {
-            const isFormComplete = selectedDate && selectedTime && mainServiceSelect.value && technicianSelect.value && customerNameInput.value && phoneNumberInput.value;
-            submitButton.disabled = !isFormComplete;
+            // Enable/Disable submit button
+            if (selectedDate && selectedTime && mainServiceSelect.value && technicianSelect.value && customerNameInput.value && phoneNumberInput.value) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
         }
 
         // --- FORM SUBMISSION ---
@@ -550,7 +544,7 @@
                         setTimeout(() => liff.closeWindow(), 3000);
                     }
                 } else {
-                     throw new Error(result.message || 'เกิดข้อผิดพลาดในการจอง');
+                    throw new Error(result.message || 'เกิดข้อผิดพลาดในการจอง');
                 }
 
             } catch (error) {
@@ -558,13 +552,12 @@
                 showAlert(error.message, 'danger');
                 submitButton.disabled = false;
                 submitButton.textContent = 'ยืนยันการจอง';
-                updateSubmitButtonState();
             }
         }
 
         function showAlert(message, type = 'danger') {
             alertMessage.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-             setTimeout(() => { alertMessage.innerHTML = '' }, 5000);
+            setTimeout(() => { alertMessage.innerHTML = '' }, 5000);
         }
 
     </script>
